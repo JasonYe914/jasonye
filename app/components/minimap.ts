@@ -1,26 +1,22 @@
-import { HALF_H, HALF_W, project, type Direction } from "./iso";
+import { HALF_H, HALF_W, type Direction } from "./iso";
 import { LANDMARKS } from "./landmarks";
-import { drawName } from "./name";
+import { drawNameFlat } from "./name";
 import type { Palette } from "./theme";
 
 /*
- * The isometric view is the top view turned 45° and squashed vertically by
- * HALF_H / HALF_W. Undoing just the squash gives a true top-down map that
- * keeps the screen's orientation: what is up-right on screen is up-right
- * on the map, so the W key still heads the same way on both.
+ * The minimap is the world from straight above, turned so the W key is
+ * north. On screen the grid's axes run diagonally, but here they are the
+ * map's own: a column step (D) goes right, and a row step back (W) goes
+ * up. So the name, laid out along the columns, reads straight across.
  */
-const UNSQUASH = HALF_W / HALF_H;
 
-/** Map pixels per world pixel, at most and at least. */
-const MAX_SCALE = 0.085;
-const MIN_SCALE = 0.04;
-/** The view's footprint never takes more than this share of the map. */
-const VIEW_SHARE = 0.55;
+/**
+ * Extra room round the screen's footprint, so things at the very edge of
+ * the window aren't on the very edge of the map.
+ */
+const MARGIN = 1.08;
 /** How far in from the map's edge off-map landmarks are pointed at from. */
 const EDGE_INSET = 12;
-/** Tiles between grid lines on the map, doubled until they are this far apart. */
-const GRID_STEP = 2;
-const MIN_LINE_GAP_PX = 9;
 
 /**
  * A colour at zero opacity. Canvas gradients blend through unpremultiplied
@@ -42,9 +38,7 @@ export type MapState = {
   cameraY: number;
   viewWidth: number;
   viewHeight: number;
-  /** The chicken, in world pixels, and which way it faces. */
-  chickenX: number;
-  chickenY: number;
+  /** The middle of the chicken, in grid space; fractional mid-step. */
   chickenCol: number;
   chickenRow: number;
   facing: Direction;
@@ -66,119 +60,51 @@ export function drawMinimap(
     canvas.height = Math.round(h * dpr);
   }
 
-  // Zoomed out far enough to show the whole view, but never so far that
-  // the name turns to specks; on a phone the view's outline runs off the
-  // map instead.
-  const k = Math.max(
-    MIN_SCALE,
-    Math.min(
-      MAX_SCALE,
-      (VIEW_SHARE * w) / state.viewWidth,
-      (VIEW_SHARE * h) / (state.viewHeight * UNSQUASH),
-    ),
-  );
-  /** World pixels to map pixels. */
-  const toMap = (x: number, y: number) => ({
-    x: w / 2 + (x - state.chickenX) * k,
-    y: h / 2 + (y - state.chickenY) * k * UNSQUASH,
+  // The map shows what the screen shows. It is centred where the camera
+  // is, so it moves only when the view pans, and the chicken moves about
+  // inside it just as it does on screen.
+  const centerCol = (state.cameraX / HALF_W + state.cameraY / HALF_H) / 2;
+  const centerRow = (state.cameraY / HALF_H - state.cameraX / HALF_W) / 2;
+  // The window is a rectangle on screen but a diamond on the grid, reaching
+  // this many tiles from its middle along both the columns and the rows.
+  // Fitting that in the map means everything on screen is on the map.
+  const reach =
+    (state.viewWidth / HALF_W + state.viewHeight / HALF_H) / 4;
+  const tilePx = Math.min(w, h) / (2 * reach * MARGIN);
+
+  /** Grid space to map pixels. */
+  const toMap = (col: number, row: number) => ({
+    x: w / 2 + (col - centerCol) * tilePx,
+    y: h / 2 + (row - centerRow) * tilePx,
   });
-  /** How many map pixels one tile edge spans; the same both ways. */
-  const tilePx = Math.SQRT2 * HALF_W * k;
 
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.clearRect(0, 0, w, h);
-  ctx.fillStyle = colors.top;
+  ctx.fillStyle = colors.map;
   ctx.fillRect(0, 0, w, h);
 
-  // World space, seen from above.
+  // The name, in grid space.
+  const origin = toMap(0, 0);
   ctx.setTransform(
-    dpr * k,
+    dpr * tilePx,
     0,
     0,
-    dpr * k * UNSQUASH,
-    dpr * (w / 2 - state.chickenX * k),
-    dpr * (h / 2 - state.chickenY * k * UNSQUASH),
+    dpr * tilePx,
+    dpr * origin.x,
+    dpr * origin.y,
   );
+  drawNameFlat(ctx, colors);
 
-  // The grid, in grid space: one unit per tile.
-  ctx.save();
-  ctx.transform(HALF_W, HALF_H, -HALF_W, HALF_H, 0, 0);
-  const reach = Math.ceil(Math.hypot(w, h) / tilePx / 2) + 2;
-  const c0 = state.chickenCol - reach;
-  const r0 = state.chickenRow - reach;
-  const c1 = state.chickenCol + reach;
-  const r1 = state.chickenRow + reach;
-
-  ctx.fillStyle = colors.here;
-  ctx.fillRect(state.chickenCol, state.chickenRow, 1, 1);
-
-  // Every tile would be a blur of lines at this size, so the map is ruled
-  // through the crosses on the floor, or through every other one, and so
-  // on, whatever keeps the lines apart.
-  let step = GRID_STEP;
-  while (step * tilePx < MIN_LINE_GAP_PX) step *= 2;
-  ctx.lineWidth = 1 / tilePx;
-  ctx.beginPath();
-  const first = (n: number) => n + (((-n % step) + step) % step);
-  for (let c = first(c0); c <= c1; c += step) {
-    ctx.moveTo(c, r0);
-    ctx.lineTo(c, r1);
-  }
-  for (let r = first(r0); r <= r1; r += step) {
-    ctx.moveTo(c0, r);
-    ctx.lineTo(c1, r);
-  }
-  ctx.globalAlpha = 0.45;
-  ctx.strokeStyle = colors.mark;
-  ctx.stroke();
-  ctx.globalAlpha = 1;
-  ctx.restore();
-
-  drawName(ctx, colors);
-
-  // Back to map pixels for everything that keeps its size.
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-  // Soft fade into the edges.
-  const fade = ctx.createRadialGradient(
-    w / 2,
-    h / 2,
-    Math.min(w, h) * 0.42,
-    w / 2,
-    h / 2,
-    Math.hypot(w, h) / 2,
-  );
-  fade.addColorStop(0, clear(colors.top));
-  fade.addColorStop(1, colors.top);
-  ctx.fillStyle = fade;
-  ctx.fillRect(0, 0, w, h);
-
-  // What the main view shows: a rectangle on screen is a rectangle here too.
-  const a = toMap(
-    state.cameraX - state.viewWidth / 2,
-    state.cameraY - state.viewHeight / 2,
-  );
-  const b = toMap(
-    state.cameraX + state.viewWidth / 2,
-    state.cameraY + state.viewHeight / 2,
-  );
-  ctx.beginPath();
-  ctx.roundRect(a.x, a.y, b.x - a.x, b.y - a.y, 4);
-  ctx.fillStyle = colors.view;
-  ctx.fill();
-  ctx.lineWidth = 1;
-  ctx.strokeStyle = colors.viewEdge;
-  ctx.stroke();
-
   drawLandmarks(ctx, w, h, toMap, colors);
-  drawPuck(ctx, w / 2, h / 2, state.facing, colors);
+  const chicken = toMap(state.chickenCol, state.chickenRow);
+  drawPuck(ctx, chicken.x, chicken.y, state.facing, colors);
 }
 
 function drawLandmarks(
   ctx: CanvasRenderingContext2D,
   w: number,
   h: number,
-  toMap: (x: number, y: number) => { x: number; y: number },
+  toMap: (col: number, row: number) => { x: number; y: number },
   colors: Palette,
 ) {
   const cx = w / 2;
@@ -187,8 +113,7 @@ function drawLandmarks(
   const halfH = h / 2 - EDGE_INSET;
 
   for (const landmark of LANDMARKS) {
-    const spot = project(landmark.col, landmark.row);
-    const { x, y } = toMap(spot.x, spot.y);
+    const { x, y } = toMap(landmark.col, landmark.row);
     const dx = x - cx;
     const dy = y - cy;
     const inside = Math.abs(dx) <= halfW && Math.abs(dy) <= halfH;
@@ -200,7 +125,7 @@ function drawLandmarks(
       ctx.fillStyle = colors.orange;
       ctx.fill();
       ctx.lineWidth = 1.5;
-      ctx.strokeStyle = colors.top;
+      ctx.strokeStyle = colors.map;
       ctx.stroke();
       continue;
     }
@@ -214,7 +139,7 @@ function drawLandmarks(
     const ex = cx + dx * reach;
     const ey = cy + dy * reach;
     const angle = Math.atan2(dy, dx);
-    const tint = landmark.kind === "pin" ? colors.orange : colors.ink[1];
+    const tint = landmark.kind === "pin" ? colors.orange : colors.ink[0];
 
     ctx.save();
     ctx.translate(ex, ey);
@@ -240,8 +165,8 @@ function drawLandmarks(
     );
     const ly = Math.min(h - 10, Math.max(10, ey - Math.sin(angle) * 14));
     ctx.beginPath();
-    ctx.roundRect(lx - labelW / 2, ly - 7, labelW, 14, 7);
-    ctx.fillStyle = colors.top;
+    ctx.roundRect(lx - labelW / 2, ly - 7, labelW, 14, 3);
+    ctx.fillStyle = colors.map;
     ctx.globalAlpha = 0.9;
     ctx.fill();
     ctx.globalAlpha = 1;
@@ -258,8 +183,8 @@ function drawPuck(
   [dc, dr]: Direction,
   colors: Palette,
 ) {
-  // A grid step (dc, dr) points along (dc - dr, dc + dr) on the map.
-  const heading = Math.atan2(dc + dr, dc - dr);
+  // Grid axes are the map's axes, so a step (dc, dr) points along (dc, dr).
+  const heading = Math.atan2(dr, dc);
   const spread = 0.62;
   const cone = ctx.createRadialGradient(x, y, 0, x, y, 24);
   cone.addColorStop(0, colors.blue);

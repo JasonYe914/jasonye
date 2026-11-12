@@ -3,14 +3,18 @@
 /*
  * Two finishes, after the MacBook Pro's.
  *
- * Light: a drafting floor, near-white and ruled with a faint grid, with the
- * name in Space Black: graphite at the back, deepening to black toward you.
+ * Light: a drafting floor, near-white and ruled with a faint grid.
  *
  * Dark: Apple's product-page black. The floor is lifted just off it, so the
- * grid reads as faint etching, and the name is brushed aluminium: bright at
- * the back, falling off to Apple's grey toward you. The accents shift to
- * their dark-mode system colours, and the pale blue sinks to a deep navy so
- * it doesn't glow.
+ * grid reads as faint etching. The accents shift to their dark-mode system
+ * colours, and the pale blue sinks to a deep navy so it doesn't glow.
+ *
+ * The name runs through the spectrum Apple paints its headline gradients
+ * with on the MacBook Pro and Apple Intelligence pages: blue, violet,
+ * magenta, orange, from the first letter to the last. Its ends pick up the
+ * blue and orange accent tiles. In light mode the colours are deep, so the
+ * letters keep their weight on white; in dark mode they brighten to glow
+ * against black.
  *
  * The page is all canvas, so it needs JavaScript anyway; the theme script
  * in <head> always sets data-theme before the first paint.
@@ -24,18 +28,19 @@
   --floor-side: #deded9;
   --floor-line: #e2e2dd;
   --floor-mark: #a6a6a0;
+  /* The minimap's ground. */
+  --map-floor: #f7f7f5;
   /* The tile under the chicken: a step darker, with a crisp edge. */
   --tile-here: #e9e9e4;
   --tile-here-edge: rgb(0 0 0 / 0.2);
   --shadow: rgb(0 0 0 / 0.16);
-  --ink-from: #4a4a50;
-  --ink-via: #1d1d1f;
-  --ink-to: #050505;
+  --ink-1: #0a63d8;
+  --ink-2: #6d3be8;
+  --ink-3: #d6307e;
+  --ink-4: #f0701c;
   --accent-orange: #f6a723;
   --accent-blue: #2d8cff;
   --accent-sky: #bddcfb;
-  --map-view: rgb(0 0 0 / 0.035);
-  --map-view-edge: rgb(0 0 0 / 0.28);
   --chrome: rgb(255 255 255 / 0.72);
   --chrome-border: rgb(0 0 0 / 0.08);
   --chrome-shadow: 0 8px 28px rgb(0 0 0 / 0.1), 0 1px 2px rgb(0 0 0 / 0.06);
@@ -50,19 +55,20 @@
   --floor-side: #000000;
   --floor-line: #1c1c1e;
   --floor-mark: #48484a;
+  /* Lifted a step above the floor, so the map reads as a panel. */
+  --map-floor: #1a1a1c;
   /* On black a darker tile would vanish, so this one is lifted instead,
      which also gives the chicken's shadow something to fall on. */
   --tile-here: #1f1f22;
   --tile-here-edge: rgb(255 255 255 / 0.24);
   --shadow: rgb(0 0 0 / 0.8);
-  --ink-from: #fbfbfd;
-  --ink-via: #d2d2d7;
-  --ink-to: #86868b;
+  --ink-1: #2997ff;
+  --ink-2: #a35cff;
+  --ink-3: #ff4f8b;
+  --ink-4: #ff9f0a;
   --accent-orange: #ff9f0a;
   --accent-blue: #2997ff;
   --accent-sky: #17324f;
-  --map-view: rgb(255 255 255 / 0.04);
-  --map-view-edge: rgb(255 255 255 / 0.32);
   --chrome: rgb(29 29 31 / 0.72);
   --chrome-border: rgb(255 255 255 / 0.1);
   --chrome-shadow: 0 8px 28px rgb(0 0 0 / 0.55), 0 1px 2px rgb(0 0 0 / 0.4);
@@ -125,6 +131,45 @@ body {
 .theme-toggle:focus-visible {
   outline: 2px solid var(--accent-blue);
   outline-offset: 3px;
+}
+
+/* Navigation dock: icons sit bare on the glass, and the current page gets
+   a soft filled circle, like a selected tab on Apple's pages. */
+.nav-item {
+  color: color-mix(in srgb, var(--foreground) 62%, transparent);
+  transition:
+    color 150ms ease-out,
+    background-color 150ms ease-out,
+    transform 150ms ease-out;
+}
+.nav-item:hover {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 7%, transparent);
+}
+.nav-item:active {
+  transform: scale(0.94);
+}
+.nav-item[aria-current="page"] {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 11%, transparent);
+}
+.nav-item:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
+}
+
+/* The label slides out to the right of an icon on hover or focus. */
+.nav-tip {
+  opacity: 0;
+  transform: translateX(-4px);
+  transition:
+    opacity 150ms ease-out,
+    transform 150ms ease-out;
+}
+.nav-item:hover .nav-tip,
+.nav-item:focus-visible .nav-tip {
+  opacity: 1;
+  transform: none;
 }
 
 /* The moon offers dark mode; the sun offers light mode back. */

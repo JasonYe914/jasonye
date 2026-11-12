@@ -69,7 +69,16 @@ const REVEAL_MS = 400;
 // Mirrors the floor blocks drawn by World, so the hand-off is seamless.
 const LIP = 5;
 
-const MOVEMENT_KEYS = new Set(["w", "a", "s", "d"]);
+const MOVEMENT_KEYS = new Set([
+  "w",
+  "a",
+  "s",
+  "d",
+  "arrowup",
+  "arrowleft",
+  "arrowdown",
+  "arrowright",
+]);
 
 /** A floor block and its part in the intro. */
 type Tile = {
@@ -164,7 +173,7 @@ function findNameCells() {
   );
   ctx.transform(0.5 / HALF_W, -0.5 / HALF_W, 0.5 / HALF_H, 0.5 / HALF_H, 0, 0);
   drawName(ctx, {
-    ink: ["#000", "#000", "#000"],
+    ink: ["#000"],
     orange: "#000",
     blue: "#000",
     sky: "#000",
