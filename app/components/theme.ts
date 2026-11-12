@@ -32,16 +32,15 @@ export type Palette = {
   side: string;
   line: string;
   mark: string;
+  /** The minimap's ground. */
+  map: string;
   /** The tile the chicken is on: its shade, and the outline round it. */
   here: string;
   hereEdge: string;
   /** The chicken's shadow. */
   shadow: string;
-  /** The main view's footprint on the minimap. */
-  view: string;
-  viewEdge: string;
   /** The name's gradient, from the back of the floor to the front. */
-  ink: [string, string, string];
+  ink: string[];
   orange: string;
   blue: string;
   sky: string;
@@ -57,12 +56,11 @@ export function readPalette(): Palette {
     side: read("--floor-side"),
     line: read("--floor-line"),
     mark: read("--floor-mark"),
+    map: read("--map-floor"),
     here: read("--tile-here"),
     hereEdge: read("--tile-here-edge"),
     shadow: read("--shadow"),
-    view: read("--map-view"),
-    viewEdge: read("--map-view-edge"),
-    ink: [read("--ink-from"), read("--ink-via"), read("--ink-to")],
+    ink: [read("--ink-1"), read("--ink-2"), read("--ink-3"), read("--ink-4")],
     orange: read("--accent-orange"),
     blue: read("--accent-blue"),
     sky: read("--accent-sky"),

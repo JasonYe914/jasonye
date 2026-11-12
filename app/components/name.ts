@@ -142,15 +142,12 @@ export function fitZoom(width: number, height: number) {
 }
 
 export type NameColors = {
-  /** Gradient stops, from the back of the name to the front. */
-  ink: readonly [string, string, string];
+  /** Gradient stops, evenly spaced from the first letter to the last. */
+  ink: readonly string[];
   orange: string;
   blue: string;
   sky: string;
 };
-
-/** Where the middle gradient stop sits: a little before halfway. */
-const INK_VIA_AT = 0.45;
 
 /** The letters' own extent in grid space, which the gradient spans. */
 const TEXT_BOX = {
@@ -215,30 +212,38 @@ function buildShapes() {
  * context to be in world space, as it is for the floor itself.
  */
 export function drawName(ctx: CanvasRenderingContext2D, colors: NameColors) {
-  shapes ??= buildShapes();
-
   ctx.save();
   // From here on, one unit is one tile and the axes are the grid's own, so
   // the letters lie on the floor and their curves foreshorten with it.
   ctx.transform(HALF_W, HALF_H, -HALF_W, HALF_H, 0, 0);
+  drawNameFlat(ctx, colors);
+  ctx.restore();
+}
+
+/**
+ * Paints the name and its accent tiles in grid space: one unit per tile,
+ * columns to the right and rows downward. Seen this way, as on the
+ * minimap, the name reads straight across.
+ */
+export function drawNameFlat(
+  ctx: CanvasRenderingContext2D,
+  colors: NameColors,
+) {
+  shapes ??= buildShapes();
+  ctx.save();
 
   for (const { color, at } of ACCENTS) {
     ctx.fillStyle = colors[color];
     ctx.fillRect(ORIGIN.col + at[0], ORIGIN.row + at[1], 1, 1);
   }
 
-  // The gradient lies on the floor with the letters, running from the back
-  // corner of the name to the front one: on screen, top to bottom, the way
-  // light falls across a lid.
-  const ink = ctx.createLinearGradient(
-    TEXT_BOX.c0,
-    TEXT_BOX.r0,
-    TEXT_BOX.c1,
-    TEXT_BOX.r1,
-  );
-  ink.addColorStop(0, colors.ink[0]);
-  ink.addColorStop(INK_VIA_AT, colors.ink[1]);
-  ink.addColorStop(1, colors.ink[2]);
+  // The gradient lies on the floor with the letters and runs the way they
+  // read, from J to N, like the gradient headlines on Apple's pages. The
+  // second line picks up the colours of the letters above it.
+  const midRow = (TEXT_BOX.r0 + TEXT_BOX.r1) / 2;
+  const ink = ctx.createLinearGradient(TEXT_BOX.c0, midRow, TEXT_BOX.c1, midRow);
+  const last = Math.max(colors.ink.length - 1, 1);
+  colors.ink.forEach((stop, index) => ink.addColorStop(index / last, stop));
 
   ctx.clip(shapes.cuts, "evenodd");
   ctx.fillStyle = ink;

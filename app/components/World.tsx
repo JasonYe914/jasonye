@@ -24,16 +24,31 @@ const RISE_MS = 600;
 const RISE_PX = 48;
 /** Height of a block's side, which only shows while the block is rising. */
 const LIP = 5;
-/** How many tiles from the window edge the chicken gets before the view moves. */
-const EDGE_LOOKAHEAD = 3;
+/**
+ * How far the chicken gets from the middle of the view, as a share of the
+ * way to the window edge, before the view moves over to it. Well short of
+ * the edge, so new floor rises in long before the chicken could reach it.
+ */
+const RECENTER_AT = 0.4;
+/**
+ * When the view moves, it centres this many tiles ahead of the chicken in
+ * the direction it is walking, so the floor builds out in front of it.
+ */
+const LEAD_TILES = 4;
 const HOP_PX = 10;
 
 // On screen: W = up-right, A = up-left, S = down-left, D = down-right.
+// The arrow keys do the same as the letters in their places on the keyboard.
+// Keys are matched lower-cased, so "ArrowUp" is "arrowup".
 const KEY_DIRECTIONS: Record<string, Direction> = {
   w: [0, -1],
   a: [-1, 0],
   s: [0, 1],
   d: [1, 0],
+  arrowup: [0, -1],
+  arrowleft: [-1, 0],
+  arrowdown: [0, 1],
+  arrowright: [1, 0],
 };
 
 /** A floor block. */
@@ -203,8 +218,11 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
    * whole stretch the view will sweep across, timed so the nearest rise
    * first, and anything already out of sight is dropped.
    */
-  function recenter(now: number) {
-    const target = tileCenter(chicken.col, chicken.row);
+  function recenter(now: number, lead = 0) {
+    const target = tileCenter(
+      chicken.col + chicken.facing[0] * lead,
+      chicken.row + chicken.facing[1] * lead,
+    );
     const oldView = viewBounds(camera.toX, camera.toY);
 
     camera.fromX = camera.x;
@@ -237,16 +255,14 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
     chicken.facing = facing;
     chicken.moveStart = now;
 
-    // The floor stays put until the chicken is almost at the window edge.
-    const ahead = tileCenter(
-      chicken.col + facing[0] * EDGE_LOOKAHEAD,
-      chicken.row + facing[1] * EDGE_LOOKAHEAD,
-    );
+    // The floor stays put until the chicken is a good way out from the
+    // middle, then the view moves over to it and fills in ahead.
+    const at = tileCenter(chicken.col, chicken.row);
     if (
-      Math.abs(ahead.x - camera.toX) > width / 2 - HALF_W ||
-      Math.abs(ahead.y - camera.toY) > height / 2 - TILE_SIDE
+      Math.abs(at.x - camera.toX) > (width / 2) * RECENTER_AT ||
+      Math.abs(at.y - camera.toY) > (height / 2) * RECENTER_AT
     ) {
-      recenter(now);
+      recenter(now, LEAD_TILES);
     }
   }
 
@@ -388,10 +404,11 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
           cameraY: camera.y,
           viewWidth: width,
           viewHeight: height,
-          chickenX,
-          chickenY,
-          chickenCol: chicken.col,
-          chickenRow: chicken.row,
+          // The middle of its tile, gliding along with it mid-step.
+          chickenCol:
+            chicken.fromCol + (chicken.col - chicken.fromCol) * moved + 0.5,
+          chickenRow:
+            chicken.fromRow + (chicken.row - chicken.fromRow) * moved + 0.5,
           facing: chicken.facing,
         },
         colors,
@@ -459,7 +476,10 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
   function onKeyDown(event: KeyboardEvent) {
     if (event.ctrlKey || event.metaKey || event.altKey) return;
     const key = event.key.toLowerCase();
-    if (!(key in KEY_DIRECTIONS) || event.repeat) return;
+    if (!(key in KEY_DIRECTIONS)) return;
+    // Arrow keys would otherwise scroll the page.
+    event.preventDefault();
+    if (event.repeat) return;
     if (!held.includes(key)) held.push(key);
     queued = key;
     schedule();
@@ -513,18 +533,18 @@ export default function World() {
         ref={canvasRef}
         className="fixed inset-0 h-full w-full"
         role="img"
-        aria-label="The name Jason Ye in huge metallic letters lying flat on an endless grid floor, with a blocky chicken standing beside them. Use the W, A, S and D keys to walk the chicken around."
+        aria-label="The name Jason Ye in huge metallic letters lying flat on an endless grid floor, with a blocky chicken standing beside them. Use the W, A, S and D keys or the arrow keys to walk the chicken around."
       />
       {/* Fog thickens toward the window edges, so new blocks rise out of it. */}
       <div className="fog pointer-events-none fixed inset-0" />
 
-      {/* Top-down map of the world, centred on the chicken. */}
-      <figure className="chrome fixed right-4 bottom-4 z-30 m-0 rounded-[22px] p-1.5">
+      {/* Top-down map of what is on screen, north up. */}
+      <figure className="chrome fixed right-4 bottom-4 z-30 m-0 rounded-lg p-1.5">
         <canvas
           ref={mapRef}
-          className="block size-[132px] rounded-2xl sm:size-[184px]"
+          className="block size-[132px] rounded-[3px] sm:size-[184px]"
           role="img"
-          aria-label="Minimap: a top-down view of the world, centred on the chicken, with the area on screen outlined."
+          aria-label="Minimap: a top-down view of the area on screen, with north up and the chicken marked. W walks north."
         />
         <figcaption className="flex items-center justify-between px-2 pt-1.5 pb-0.5 font-mono text-[10px] tracking-[0.08em] uppercase opacity-60">
           <span>Map</span>
