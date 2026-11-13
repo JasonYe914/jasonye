@@ -1,19 +1,18 @@
 export type Theme = "light" | "dark";
 
-/** Where an explicit choice is remembered. With none, the system decides. */
+/** Where an explicit choice is remembered. With none, the site is light. */
 export const THEME_KEY = "theme";
 
 /**
  * Runs in <head> before the first paint, so the page never flashes the
  * wrong theme. Kept tiny and dependency-free on purpose.
  */
-export const THEME_SCRIPT = `(function(){try{var t=localStorage.getItem("${THEME_KEY}");if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.setAttribute("data-theme",t)}catch(e){}})()`;
+export const THEME_SCRIPT = `(function(){try{var t=localStorage.getItem("${THEME_KEY}");if(t!=="light"&&t!=="dark")t="light";document.documentElement.setAttribute("data-theme",t)}catch(e){}})()`;
 
-/** The theme on screen now: the attribute if set, otherwise the system's. */
+/** The theme on screen now. Light unless dark has been chosen. */
 export function currentTheme(): Theme {
   const set = document.documentElement.getAttribute("data-theme");
-  if (set === "light" || set === "dark") return set;
-  return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  return set === "dark" ? "dark" : "light";
 }
 
 /** The theme the visitor picked, if they have picked one. */
@@ -69,8 +68,7 @@ export function readPalette(): Palette {
 }
 
 /**
- * Calls `onChange` whenever the colours may have changed: the theme
- * attribute flipping, or the system theme changing while none is set.
+ * Calls `onChange` whenever the theme attribute changes.
  * The callback runs before the next paint, so a canvas can redraw in time
  * to be part of a view transition's new snapshot.
  */
@@ -80,10 +78,5 @@ export function watchTheme(onChange: () => void) {
     attributes: true,
     attributeFilter: ["data-theme"],
   });
-  const system = matchMedia("(prefers-color-scheme: dark)");
-  system.addEventListener("change", onChange);
-  return () => {
-    observer.disconnect();
-    system.removeEventListener("change", onChange);
-  };
+  return () => observer.disconnect();
 }

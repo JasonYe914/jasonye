@@ -2,16 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import { drawChicken } from "./chicken";
+import { INTRO_LANDED_EVENT } from "./keyHints";
 import { HALF_H, HALF_W, TILE_SIDE, tileCenter, type Direction } from "./iso";
 import { HOME, NAME_TILES, drawName, fitZoom } from "./name";
 import { readPalette, watchTheme, type Palette } from "./theme";
 
 /** How long the swirl takes to reach the last block. */
-const SWIRL_MS = 1700;
+const SWIRL_MS = 1400;
 /** How long one block takes to pop in. */
-const POP_MS = 320;
+const POP_MS = 280;
 /** Pause with the finished grid before the raised blocks settle. */
-const HOLD_MS = 120;
+const HOLD_MS = 100;
 /** Distance between successive arms of the swirl, in tiles. */
 const ARM_PITCH_TILES = 1.4;
 /** Below 1 the swirl starts slow at the centre instead of blurring through it. */
@@ -23,35 +24,39 @@ const RAISED_SHARE = 0.3;
 const RAISE_MIN_PX = 6;
 const RAISE_MAX_PX = 18;
 /** Blocks start settling at random moments within this long of each other. */
-const RELEASE_SPREAD_MS = 650;
+const RELEASE_SPREAD_MS = 520;
 /** How long one block takes to slide down into place. */
-const SETTLE_MIN_MS = 380;
-const SETTLE_MAX_MS = 620;
+const SETTLE_MIN_MS = 320;
+const SETTLE_MAX_MS = 520;
 /** Pause between the floor being down and the name starting to fall. */
-const NAME_PAUSE_MS = 150;
+const NAME_PAUSE_MS = 80;
 /**
  * The name's pieces come down in a loose wave from its first letter to its
  * last: the wave takes this long to cross it, and each piece lets go up to
  * NAME_JITTER_MS either side of it.
  */
-const NAME_WAVE_MS = 750;
-const NAME_JITTER_MS = 220;
+const NAME_WAVE_MS = 620;
+const NAME_JITTER_MS = 180;
 /** How long a piece takes to fall the height of the window. */
-const NAME_FALL_MS = 1250;
+const NAME_FALL_MS = 1050;
 /** Each piece's fall time is stretched by a random factor in this range. */
 const NAME_SLOWEST = 1.12;
 const NAME_FASTEST = 0.9;
 /** Pieces start up to this many tiles above the top of the window. */
-const NAME_HEADROOM_TILES = 3;
-/** Over this last share of its fall a piece's outline melts away. */
-const NAME_MELT = 0.3;
+const NAME_HEADROOM_TILES = 2;
+/**
+ * A falling piece's shadow on its spot starts this many world pixels above
+ * the floor, and is this dark when the piece arrives.
+ */
+const CONTACT_SHADOW_PX = 140;
+const CONTACT_SHADOW_ALPHA = 0.14;
 /**
  * The chicken lets go this long before the last piece of the name lands, so
  * it touches down just after the name is whole.
  */
-const CHICKEN_OVERLAP_MS = 450;
+const CHICKEN_OVERLAP_MS = 400;
 /** How long the chicken takes to drop in from above the window. */
-const CHICKEN_FALL_MS = 950;
+const CHICKEN_FALL_MS = 800;
 /** The little hop it takes on landing. */
 const CHICKEN_HOP_MS = 340;
 const CHICKEN_HOP_PX = 12;
@@ -64,10 +69,17 @@ const SHADOW_RY = TILE_SIDE * 0.14 * 1.45;
 /** Pixels per tile when working out which tiles the name is painted on. */
 const PROBE_PX = 8;
 /** How long the overlay takes to fade once the floor is down. */
-const REVEAL_MS = 400;
+const REVEAL_MS = 350;
 
 // Mirrors the floor blocks drawn by World, so the hand-off is seamless.
 const LIP = 5;
+/** How thick a falling piece of the name is, in world pixels. */
+const BLOCK_DEPTH = 9;
+/** How much darker a piece's left and right sides are than its top. */
+const LEFT_SHADE = 0.16;
+const RIGHT_SHADE = 0.3;
+/** Time per frame spent picturing the name's blocks ahead of their fall. */
+const BLOCK_BUDGET_MS = 4;
 
 const MOVEMENT_KEYS = new Set([
   "w",
@@ -97,7 +109,71 @@ type Tile = {
    * once the floor is down it falls from above the window onto its tile.
    */
   lettered: boolean;
+  /** A lettered block, drawn once and reused while it falls. */
+  block?: HTMLCanvasElement | null;
 };
+
+/** Blank space round a block's picture, so its edges are not clipped. */
+const BLOCK_PAD = 1;
+
+/**
+ * Pictures one lettered block, `scale` canvas pixels to the world pixel:
+ * its top face with its piece of the name, and below the top's front edges
+ * the block's two sides, each a short drop of whatever is on that edge,
+ * shaded. Its top face's centre sits at (HALF_W, HALF_H) + BLOCK_PAD.
+ */
+function buildBlock(tile: Tile, colors: Palette, scale: number) {
+  const width = Math.ceil((2 * HALF_W + 2 * BLOCK_PAD) * scale);
+  const height = Math.ceil(
+    (2 * HALF_H + BLOCK_DEPTH + 2 * BLOCK_PAD) * scale,
+  );
+  const face = document.createElement("canvas");
+  const block = document.createElement("canvas");
+  face.width = block.width = width;
+  face.height = block.height = height;
+  const f = face.getContext("2d");
+  const b = block.getContext("2d");
+  if (!f || !b) return null;
+
+  // The top face: floor, with the name painted on, just as it lands.
+  f.setTransform(scale, 0, 0, scale, 0, 0);
+  f.translate(BLOCK_PAD + HALF_W - tile.x, BLOCK_PAD + HALF_H - tile.y);
+  f.beginPath();
+  diamond(f, tile.x, tile.y);
+  f.clip();
+  f.fillStyle = colors.top;
+  f.fill();
+  drawName(f, colors);
+
+  // The sides: the top, stacked downwards a sliver at a time, so each side
+  // carries the colour of the edge above it straight down.
+  const step = 1 / scale;
+  for (let k = BLOCK_DEPTH; k > 0; k -= step) {
+    b.drawImage(face, 0, k * scale);
+  }
+
+  // Shade the sides, and only where they were drawn.
+  b.globalCompositeOperation = "source-atop";
+  b.setTransform(scale, 0, 0, scale, 0, 0);
+  b.translate(BLOCK_PAD + HALF_W, BLOCK_PAD + HALF_H);
+  const side = (dir: number, shade: number) => {
+    b.beginPath();
+    b.moveTo(dir * HALF_W, 0);
+    b.lineTo(0, HALF_H);
+    b.lineTo(0, HALF_H + BLOCK_DEPTH);
+    b.lineTo(dir * HALF_W, BLOCK_DEPTH);
+    b.closePath();
+    b.fillStyle = `rgba(0, 0, 0, ${shade})`;
+    b.fill();
+  };
+  side(-1, LEFT_SHADE);
+  side(1, RIGHT_SHADE);
+
+  b.globalCompositeOperation = "source-over";
+  b.setTransform(1, 0, 0, 1, 0, 0);
+  b.drawImage(face, 0, 0);
+  return block;
+}
 
 /** Smooth start, smooth stop. */
 function easeInOutCubic(t: number) {
@@ -419,6 +495,19 @@ function startLoader(canvas: HTMLCanvasElement, onLanded: () => void) {
     drawName(ctx, colors);
     ctx.restore();
 
+    // Picture the name's blocks while the floor settles, a few each frame,
+    // so none has to be pictured mid-fall and the fall never stutters.
+    if (settleAt !== null) {
+      const until = performance.now() + BLOCK_BUDGET_MS;
+      const pixelScale = (window.devicePixelRatio || 1) * zoom;
+      for (const tile of tiles) {
+        if (performance.now() > until) break;
+        if (tile.lettered && tile.block === undefined) {
+          tile.block = buildBlock(tile, colors, pixelScale);
+        }
+      }
+    }
+
     // Blocks popping in or standing proud are drawn one by one, back to front.
     for (const tile of moving) {
       const since = sinceSettle - tile.release;
@@ -426,40 +515,79 @@ function startLoader(canvas: HTMLCanvasElement, onLanded: () => void) {
       if (y < top || y > bottom) continue;
       const grown = easeOutCubic(clamp01((elapsed - tile.appear) / POP_MS));
       const scale = 0.3 + 0.7 * grown;
-      // The name has no grid lines on it, so a piece's outline and lip melt
-      // away as it comes in to land, rather than vanishing the moment it is down.
-      const outline = tile.lettered
-        ? clamp01((1 - since / tile.duration) / NAME_MELT)
-        : 1;
+      if (tile.lettered) {
+        const lift = tile.y - y;
+
+        // A soft shadow gathers on its spot as it closes in, so it is seen
+        // to come down onto the floor. The block covers it fully on landing.
+        const near = clamp01(1 - lift / CONTACT_SHADOW_PX);
+        if (near > 0) {
+          ctx.globalAlpha = near * near * CONTACT_SHADOW_ALPHA;
+          ctx.beginPath();
+          diamond(ctx, tile.x, tile.y);
+          ctx.fillStyle = "#000";
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+
+        // Its sides, cut off at the floor: in its last few pixels the block
+        // sinks into its slot, the sides slipping out of sight below the
+        // floor, as a settling floor block's do.
+        const depth = Math.min(BLOCK_DEPTH, lift);
+        const pixelScale = (window.devicePixelRatio || 1) * zoom;
+        if (tile.block === undefined) {
+          tile.block = buildBlock(tile, colors, pixelScale);
+        }
+        if (depth > 0 && tile.block) {
+          ctx.save();
+          ctx.beginPath();
+          sides(ctx, tile.x, y, y + depth);
+          ctx.clip();
+          ctx.drawImage(
+            tile.block,
+            tile.x - HALF_W - BLOCK_PAD,
+            y - HALF_H - BLOCK_PAD,
+            tile.block.width / pixelScale,
+            tile.block.height / pixelScale,
+          );
+          ctx.restore();
+        }
+
+        // Its top, painted live exactly as the landed name is, so nothing
+        // shifts or sharpens at the moment it touches down.
+        ctx.save();
+        ctx.beginPath();
+        diamond(ctx, tile.x, y);
+        ctx.clip();
+        ctx.fillStyle = colors.top;
+        ctx.fill();
+        ctx.translate(0, y - tile.y);
+        drawName(ctx, colors);
+        ctx.restore();
+
+        // The name has no grid lines on it, so the outline fades out over
+        // the same last few pixels.
+        ctx.globalAlpha = clamp01(lift / BLOCK_DEPTH);
+        ctx.beginPath();
+        diamond(ctx, tile.x, y);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+        continue;
+      }
       ctx.globalAlpha = grown;
       ctx.beginPath();
       // A raised floor block's sides end where the floor meets it, so they
       // shrink away to nothing as it settles; others show their usual lip.
-      const depth =
-        tile.lettered ? LIP * outline : tile.drop > 0 ? tile.y - y : LIP;
+      const depth = tile.drop > 0 ? tile.y - y : LIP;
       sides(ctx, tile.x, y, y + depth * scale, scale);
       ctx.fillStyle = colors.side;
       ctx.fill();
-      ctx.globalAlpha = grown * outline;
       ctx.stroke();
-      ctx.globalAlpha = grown;
       ctx.beginPath();
       diamond(ctx, tile.x, y, scale);
       ctx.fillStyle = colors.top;
       ctx.fill();
-      if (tile.lettered) {
-        ctx.globalAlpha = grown * outline;
-        ctx.stroke();
-        ctx.globalAlpha = grown;
-        // Its piece of the name, carried on its top face.
-        ctx.save();
-        ctx.clip();
-        ctx.translate(0, y - tile.y);
-        drawName(ctx, colors);
-        ctx.restore();
-      } else {
-        ctx.stroke();
-      }
+      ctx.stroke();
     }
     ctx.globalAlpha = 1;
 
@@ -513,6 +641,8 @@ function startLoader(canvas: HTMLCanvasElement, onLanded: () => void) {
   /** Repaints at once in the new colours, mid-animation or not. */
   function recolor() {
     colors = readPalette();
+    // Lettered blocks are pictured in the old colours; picture them afresh.
+    for (const tile of tiles) delete tile.block;
     cancelAnimationFrame(frame);
     draw(performance.now());
   }
@@ -562,7 +692,11 @@ export default function Loader() {
 
   useEffect(() => {
     if (canvasRef.current) {
-      return startLoader(canvasRef.current, () => setPhase("reveal"));
+      return startLoader(canvasRef.current, () => {
+        setPhase("reveal");
+        // Tells the home page to show the movement keys.
+        window.dispatchEvent(new Event(INTRO_LANDED_EVENT));
+      });
     }
   }, []);
 

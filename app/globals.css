@@ -16,7 +16,8 @@
  * letters keep their weight on white; in dark mode they brighten to glow
  * against black.
  *
- * The page is all canvas, so it needs JavaScript anyway; the theme script
+ * The site starts light; dark is used only once a visitor picks it. The
+ * page is all canvas, so it needs JavaScript anyway, and the theme script
  * in <head> always sets data-theme before the first paint.
  */
 :root {
@@ -44,6 +45,20 @@
   --chrome: rgb(255 255 255 / 0.72);
   --chrome-border: rgb(0 0 0 / 0.08);
   --chrome-shadow: 0 8px 28px rgb(0 0 0 / 0.1), 0 1px 2px rgb(0 0 0 / 0.06);
+  --muted: #6e6e73;
+  /* What the villages are built from. Kept as hex: the canvas shades them. */
+  --obj-stone: #e6e0d2;
+  --obj-roof: #6f9c88;
+  --obj-dark: #2c2c30;
+  --obj-paper: #fbfbf8;
+  --obj-road: #d6d6d0;
+  --obj-line: #c6c6c0;
+  --obj-muted: #c9c9cf;
+  --obj-z1: #cfe3fb;
+  --obj-z2: #e3dafb;
+  --obj-z3: #fde0d2;
+  --obj-plaza: #ebeae4;
+  --obj-stall: #f1efe8;
 }
 
 :root[data-theme="dark"] {
@@ -72,6 +87,19 @@
   --chrome: rgb(29 29 31 / 0.72);
   --chrome-border: rgb(255 255 255 / 0.1);
   --chrome-shadow: 0 8px 28px rgb(0 0 0 / 0.55), 0 1px 2px rgb(0 0 0 / 0.4);
+  --muted: #98989d;
+  --obj-stone: #8c867a;
+  --obj-roof: #4f7a68;
+  --obj-dark: #3c3c42;
+  --obj-paper: #e6e6e1;
+  --obj-road: #232326;
+  --obj-line: #3a3a3e;
+  --obj-muted: #4a4a52;
+  --obj-z1: #17324f;
+  --obj-z2: #2b2150;
+  --obj-z3: #4a2618;
+  --obj-plaza: #161618;
+  --obj-stall: #5a5752;
 }
 
 @theme inline {
@@ -108,8 +136,7 @@ body {
     );
 }
 
-/* Frosted glass, like the controls on Apple's product pages. Shared by the
-   theme toggle and the minimap. */
+/* Frosted glass, like the controls on Apple's product pages. */
 .chrome {
   color: var(--foreground);
   background: var(--chrome);
@@ -119,47 +146,186 @@ body {
   -webkit-backdrop-filter: saturate(180%) blur(20px);
 }
 
-.theme-toggle {
-  transition: transform 150ms ease-out;
+/*
+ * Navigation bar palettes, still being chosen: add ?nav=<name> to the
+ * address to try one. Each is a grey: in light mode a shade, darker than
+ * the floor; in dark mode a tint, lighter than the black.
+ *
+ *   --nav-bg        the bar
+ *   --nav-edge      its hairline border
+ *   --nav-icon      icons at rest
+ *   --nav-icon-on   icons hovered or current
+ *   --nav-hover     the circle behind a hovered icon
+ *   --nav-current   the circle behind the current page
+ *   --nav-tip-bg/fg the name label
+ */
+
+/* Aluminum (default): Apple's light system grey, with the current page
+   lifted out as a white disc, like a selected segment in macOS. */
+.nav-bar[data-palette="aluminum"] {
+  --nav-bg: rgb(209 209 214 / 0.9);
+  --nav-edge: rgb(0 0 0 / 0.08);
+  --nav-icon: #58585d;
+  --nav-icon-on: #1d1d1f;
+  --nav-hover: rgb(0 0 0 / 0.07);
+  --nav-current: #ffffff;
+  --nav-current-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+  --nav-tip-bg: #1d1d1f;
+  --nav-tip-fg: #f5f5f7;
 }
-.theme-toggle:hover {
-  transform: scale(1.06);
-}
-.theme-toggle:active {
-  transform: scale(0.96);
-}
-.theme-toggle:focus-visible {
-  outline: 2px solid var(--accent-blue);
-  outline-offset: 3px;
+:root[data-theme="dark"] .nav-bar[data-palette="aluminum"] {
+  --nav-bg: rgb(32 32 34 / 0.9);
+  --nav-edge: rgb(255 255 255 / 0.08);
+  --nav-icon: #98989d;
+  --nav-icon-on: #f5f5f7;
+  --nav-hover: rgb(255 255 255 / 0.08);
+  --nav-current: #48484a;
+  --nav-current-shadow: 0 1px 3px rgb(0 0 0 / 0.4);
+  --nav-tip-bg: #f5f5f7;
+  --nav-tip-fg: #1d1d1f;
 }
 
-/* Navigation dock: icons sit bare on the glass, and the current page gets
-   a soft filled circle, like a selected tab on Apple's pages. */
-.nav-item {
-  color: color-mix(in srgb, var(--foreground) 62%, transparent);
+/* Graphite: the strongest contrast. A near-black bar on the light floor,
+   flipping to a near-white bar on the dark one. */
+.nav-bar[data-palette="graphite"] {
+  --nav-bg: rgb(29 29 31 / 0.92);
+  --nav-edge: rgb(255 255 255 / 0.06);
+  --nav-icon: #8e8e93;
+  --nav-icon-on: #ffffff;
+  --nav-hover: rgb(255 255 255 / 0.1);
+  --nav-current: #3a3a3c;
+  --nav-current-shadow: none;
+  --nav-tip-bg: #1d1d1f;
+  --nav-tip-fg: #f5f5f7;
+}
+:root[data-theme="dark"] .nav-bar[data-palette="graphite"] {
+  --nav-bg: rgb(229 229 234 / 0.94);
+  --nav-edge: rgb(0 0 0 / 0.08);
+  --nav-icon: #6e6e73;
+  --nav-icon-on: #000000;
+  --nav-hover: rgb(0 0 0 / 0.07);
+  --nav-current: #ffffff;
+  --nav-current-shadow: 0 1px 3px rgb(0 0 0 / 0.15);
+  --nav-tip-bg: #e5e5ea;
+  --nav-tip-fg: #1d1d1f;
+}
+
+/* Space Gray: the mid grey of the laptop itself, with white icons. */
+.nav-bar[data-palette="space-gray"] {
+  --nav-bg: rgb(120 120 126 / 0.9);
+  --nav-edge: rgb(255 255 255 / 0.12);
+  --nav-icon: rgb(255 255 255 / 0.72);
+  --nav-icon-on: #ffffff;
+  --nav-hover: rgb(255 255 255 / 0.14);
+  --nav-current: rgb(255 255 255 / 0.24);
+  --nav-current-shadow: none;
+  --nav-tip-bg: #5c5c61;
+  --nav-tip-fg: #ffffff;
+}
+:root[data-theme="dark"] .nav-bar[data-palette="space-gray"] {
+  --nav-bg: rgb(72 72 76 / 0.9);
+  --nav-edge: rgb(255 255 255 / 0.1);
+  --nav-icon: rgb(255 255 255 / 0.62);
+  --nav-icon-on: #ffffff;
+  --nav-hover: rgb(255 255 255 / 0.1);
+  --nav-current: rgb(255 255 255 / 0.18);
+  --nav-current-shadow: none;
+  --nav-tip-bg: #48484c;
+  --nav-tip-fg: #ffffff;
+}
+
+/* Stone: a warm grey that matches the off-white floor, a little softer
+   than the cool Apple greys. */
+.nav-bar[data-palette="stone"] {
+  --nav-bg: rgb(231 229 226 / 0.9);
+  --nav-edge: rgb(68 64 60 / 0.08);
+  --nav-icon: #78716c;
+  --nav-icon-on: #292524;
+  --nav-hover: rgb(68 64 60 / 0.07);
+  --nav-current: #fafaf9;
+  --nav-current-shadow: 0 1px 3px rgb(68 64 60 / 0.14);
+  --nav-tip-bg: #292524;
+  --nav-tip-fg: #fafaf9;
+}
+:root[data-theme="dark"] .nav-bar[data-palette="stone"] {
+  --nav-bg: rgb(41 37 36 / 0.9);
+  --nav-edge: rgb(250 250 249 / 0.08);
+  --nav-icon: #a8a29e;
+  --nav-icon-on: #fafaf9;
+  --nav-hover: rgb(250 250 249 / 0.07);
+  --nav-current: #57534e;
+  --nav-current-shadow: 0 1px 3px rgb(0 0 0 / 0.4);
+  --nav-tip-bg: #f5f5f4;
+  --nav-tip-fg: #292524;
+}
+
+/* The minimap's coordinate readout: a small chip in the map's top-right
+   corner, backed with the map's own ground so it reads over anything. */
+.map-coords {
+  color: color-mix(in srgb, var(--foreground) 72%, transparent);
+  background: color-mix(in srgb, var(--map-floor) 85%, transparent);
+  letter-spacing: 0.02em;
+}
+.map-coords b {
+  font-weight: 600;
+  color: color-mix(in srgb, var(--foreground) 45%, transparent);
+  margin-right: 0.35em;
+}
+
+.nav-bar {
+  background: var(--nav-bg);
+  border: 1px solid var(--nav-edge);
+  box-shadow: var(--chrome-shadow);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
   transition:
+    background-color 200ms ease-out,
+    border-color 200ms ease-out;
+}
+
+/* Icons grow from the left edge, so a magnified one swells out to the
+   right of the bar. Their size is set inline as the pointer moves. */
+.nav-item {
+  color: var(--nav-icon);
+  transition:
+    width 160ms ease-out,
+    height 160ms ease-out,
     color 150ms ease-out,
     background-color 150ms ease-out,
-    transform 150ms ease-out;
+    box-shadow 150ms ease-out;
+}
+.nav-item > svg {
+  width: 45%;
+  height: 45%;
 }
 .nav-item:hover {
-  color: var(--foreground);
-  background: color-mix(in srgb, var(--foreground) 7%, transparent);
-}
-.nav-item:active {
-  transform: scale(0.94);
+  color: var(--nav-icon-on);
+  background: var(--nav-hover);
 }
 .nav-item[aria-current="page"] {
-  color: var(--foreground);
-  background: color-mix(in srgb, var(--foreground) 11%, transparent);
+  color: var(--nav-icon-on);
+  background: var(--nav-current);
+  box-shadow: var(--nav-current-shadow);
 }
 .nav-item:focus-visible {
   outline: 2px solid var(--accent-blue);
   outline-offset: 2px;
 }
 
-/* The label slides out to the right of an icon on hover or focus. */
+/* The name label slides out to the right of an icon on hover or focus. */
 .nav-tip {
+  position: absolute;
+  left: 100%;
+  margin-left: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  color: var(--nav-tip-fg);
+  background: var(--nav-tip-bg);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.16);
   opacity: 0;
   transform: translateX(-4px);
   transition:
@@ -173,12 +339,18 @@ body {
 }
 
 /* The moon offers dark mode; the sun offers light mode back. */
-.theme-toggle .icon-sun,
-:root[data-theme="dark"] .theme-toggle .icon-moon {
+.nav-item .icon-sun,
+:root[data-theme="dark"] .nav-item .icon-moon {
   display: none;
 }
-:root[data-theme="dark"] .theme-toggle .icon-sun {
+:root[data-theme="dark"] .nav-item .icon-sun {
   display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-item {
+    transition: none;
+  }
 }
 
 /* A slower, gentler crossfade when switching themes. */
@@ -186,4 +358,306 @@ body {
 ::view-transition-new(root) {
   animation-duration: 450ms;
   animation-timing-function: ease-in-out;
+}
+
+/* ---------- Villages ---------- */
+
+/* The card for whatever the chicken is beside. Bottom-left, clear of the
+   minimap in the bottom-right corner. */
+.village-card {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 35;
+  width: min(380px, calc(100vw - 180px));
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 10px 12px;
+  align-items: start;
+  padding: 14px;
+  border-radius: 14px;
+  text-align: left;
+  cursor: pointer;
+  animation: village-rise 220ms ease-out;
+}
+@media (min-width: 640px) {
+  .village-card {
+    width: min(400px, calc(100vw - 240px));
+  }
+}
+.village-card:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 3px;
+}
+.village-card-body {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.village-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.village-card-text {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.village-card-foot {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 9px;
+  border-top: 1px solid var(--chrome-border);
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.village-card kbd,
+.village-sheet kbd {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 10px;
+  padding: 0 5px;
+  border: 1px solid var(--chrome-border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  color: var(--foreground);
+}
+
+/* The full sheet: a side panel on wide screens, a bottom sheet on phones. */
+.village-sheet {
+  position: fixed;
+  z-index: 45;
+  top: 16px;
+  right: 16px;
+  bottom: 16px;
+  width: min(420px, calc(100vw - 32px));
+  overflow-y: auto;
+  padding: 20px;
+  border-radius: 18px;
+  display: grid;
+  gap: 16px;
+  align-content: start;
+  animation: village-slide 260ms ease-out;
+}
+@media (max-width: 639px) {
+  .village-sheet {
+    top: auto;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    width: auto;
+    max-height: 72vh;
+  }
+}
+.village-sheet-head {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+}
+.village-sheet-head h2 {
+  font-size: 19px;
+  font-weight: 650;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+.village-sheet-head p {
+  font-size: 13px;
+  color: var(--muted);
+}
+.village-sheet-meta {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 11px !important;
+}
+.village-sheet-close {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  color: var(--muted);
+}
+.village-sheet-close:hover {
+  background: var(--chrome-border);
+  color: var(--foreground);
+}
+.village-sheet-close svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.village-sheet-summary {
+  font-size: 15px;
+  line-height: 1.5;
+}
+.village-sheet-numbers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 8px;
+}
+.village-sheet-numbers div {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid var(--chrome-border);
+}
+.village-sheet-numbers dd {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.village-sheet-numbers dt {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.village-sheet-media {
+  width: 100%;
+  border-radius: 10px;
+}
+.village-sheet-media.is-empty {
+  aspect-ratio: 16 / 9;
+  display: grid;
+  place-content: center;
+  gap: 4px;
+  padding: 16px;
+  text-align: center;
+  border: 1px dashed var(--muted);
+  color: var(--muted);
+}
+.village-sheet-media.is-empty span {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+.village-sheet-media.is-empty small {
+  font-size: 12px;
+}
+.village-sheet-points {
+  display: grid;
+  gap: 8px;
+  padding-left: 18px;
+  list-style: disc;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.village-sheet-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.village-sheet-tools li {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 11.5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--chrome-border);
+  color: var(--muted);
+}
+.village-sheet-tools li[data-core] {
+  color: var(--foreground);
+  border-color: var(--muted);
+}
+.village-sheet-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 14px;
+}
+.village-sheet-links a {
+  color: var(--accent-blue);
+}
+.village-sheet-hint {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+/* Fast travel: the villages, listed beside the dock. */
+.travel-menu {
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 260px;
+  padding: 8px;
+  border-radius: 16px;
+  animation: village-rise 180ms ease-out;
+}
+.travel-menu-title {
+  padding: 6px 8px 8px;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.travel-menu button {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 10px;
+  text-align: left;
+}
+.travel-menu button:hover,
+.travel-menu button:focus-visible {
+  background: var(--chrome-border);
+  outline: none;
+}
+.travel-menu button > span {
+  display: grid;
+  min-width: 0;
+}
+.travel-name {
+  font-size: 13.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.travel-meta {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+@keyframes village-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.travel-menu {
+  animation-name: travel-in;
+}
+@keyframes travel-in {
+  from {
+    opacity: 0;
+    transform: translate(-4px, -50%);
+  }
+}
+@keyframes village-slide {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .village-card,
+  .village-sheet,
+  .travel-menu {
+    animation: none;
+  }
 }

@@ -1,6 +1,7 @@
 import { HALF_H, HALF_W, type Direction } from "./iso";
 import { LANDMARKS } from "./landmarks";
 import { drawNameFlat } from "./name";
+import { LOT, VILLAGES, lotOrigin } from "./villages";
 import type { Palette } from "./theme";
 
 /*
@@ -94,6 +95,18 @@ export function drawMinimap(
   );
   drawNameFlat(ctx, colors);
 
+  // Each village: its lot tinted in its colour, its middle solid.
+  for (const village of VILLAGES) {
+    const lot = lotOrigin(village);
+    ctx.globalAlpha = 0.18;
+    ctx.fillStyle = village.color;
+    ctx.fillRect(lot.col, lot.row, LOT, LOT);
+    ctx.globalAlpha = 1;
+    ctx.beginPath();
+    ctx.roundRect(village.col - 2, village.row - 2, 4, 4, 0.8);
+    ctx.fill();
+  }
+
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   drawLandmarks(ctx, w, h, toMap, colors);
   const chicken = toMap(state.chickenCol, state.chickenRow);
@@ -139,7 +152,8 @@ function drawLandmarks(
     const ex = cx + dx * reach;
     const ey = cy + dy * reach;
     const angle = Math.atan2(dy, dx);
-    const tint = landmark.kind === "pin" ? colors.orange : colors.ink[0];
+    const tint =
+      landmark.color ?? (landmark.kind === "pin" ? colors.orange : colors.ink[0]);
 
     ctx.save();
     ctx.translate(ex, ey);
