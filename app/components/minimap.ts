@@ -1,7 +1,8 @@
-import { HALF_H, HALF_W, type Direction } from "./iso";
+import { HALF_H, HALF_W, project, type Direction } from "./iso";
 import { LANDMARKS } from "./landmarks";
 import { drawNameFlat } from "./name";
-import { LOT, VILLAGES, lotOrigin } from "./villages";
+import { PLACES } from "./places";
+import { PLANS } from "./villageLayout";
 import type { Palette } from "./theme";
 
 /*
@@ -9,6 +10,12 @@ import type { Palette } from "./theme";
  * north. On screen the grid's axes run diagonally, but here they are the
  * map's own: a column step (D) goes right, and a row step back (W) goes
  * up. So the name, laid out along the columns, reads straight across.
+ *
+ * It shows what the screen shows, centred where the camera is, and is
+ * kept spare: the name, each village's images in its hue, the places as
+ * hairline outlines, a small arrow at the rim for each
+ * landmark out of view, and the chicken as a dot. No labels; the world
+ * has those.
  */
 
 /**
@@ -17,7 +24,7 @@ import type { Palette } from "./theme";
  */
 const MARGIN = 1.08;
 /** How far in from the map's edge off-map landmarks are pointed at from. */
-const EDGE_INSET = 12;
+const EDGE_INSET = 8;
 
 /**
  * A colour at zero opacity. Canvas gradients blend through unpremultiplied
@@ -43,9 +50,44 @@ export type MapState = {
   chickenCol: number;
   chickenRow: number;
   facing: Direction;
+  /** Unused by this map, which always shows just what the screen shows. */
+  viewAlpha?: number;
 };
 
-/** Draws the map centred on the chicken, sized to the canvas's CSS box. */
+/**
+ * How the map is laid over the world: the grid point at its middle, and
+ * how many map pixels one tile takes.
+ */
+export type MapFrame = { centerCol: number; centerRow: number; tilePx: number };
+
+/** The map's framing for a `w` × `h` map (CSS pixels): centred on the camera, fitting the screen. */
+export function mapFrame(
+  w: number,
+  h: number,
+  // Anything else in the state (the chicken) doesn't move the framing.
+  state: Pick<MapState, "cameraX" | "cameraY" | "viewWidth" | "viewHeight"> &
+    Partial<MapState>,
+): MapFrame {
+  // The map moves only when the view pans, and the chicken moves about
+  // inside it just as it does on screen.
+  const centerCol = (state.cameraX / HALF_W + state.cameraY / HALF_H) / 2;
+  const centerRow = (state.cameraY / HALF_H - state.cameraX / HALF_W) / 2;
+  // The window is a rectangle on screen but a diamond on the grid, reaching
+  // this many tiles from its middle along both the columns and the rows.
+  // Fitting that in the map means everything on screen is on the map.
+  const reach = (state.viewWidth / HALF_W + state.viewHeight / HALF_H) / 4;
+  return { centerCol, centerRow, tilePx: Math.min(w, h) / (2 * reach * MARGIN) };
+}
+
+/** The world point, in world pixels, under map pixel (x, y). */
+export function mapToWorld(frame: MapFrame, w: number, h: number, x: number, y: number) {
+  return project(
+    frame.centerCol + (x - w / 2) / frame.tilePx,
+    frame.centerRow + (y - h / 2) / frame.tilePx,
+  );
+}
+
+/** Draws the map centred on the camera, sized to the canvas's CSS box. */
 export function drawMinimap(
   canvas: HTMLCanvasElement,
   ctx: CanvasRenderingContext2D,
@@ -57,21 +99,9 @@ export function drawMinimap(
   if (!w || !h) return;
   const dpr = window.devicePixelRatio || 1;
   if (canvas.width !== Math.round(w * dpr)) canvas.width = Math.round(w * dpr);
-  if (canvas.height !== Math.round(h * dpr)) {
-    canvas.height = Math.round(h * dpr);
-  }
+  if (canvas.height !== Math.round(h * dpr)) canvas.height = Math.round(h * dpr);
 
-  // The map shows what the screen shows. It is centred where the camera
-  // is, so it moves only when the view pans, and the chicken moves about
-  // inside it just as it does on screen.
-  const centerCol = (state.cameraX / HALF_W + state.cameraY / HALF_H) / 2;
-  const centerRow = (state.cameraY / HALF_H - state.cameraX / HALF_W) / 2;
-  // The window is a rectangle on screen but a diamond on the grid, reaching
-  // this many tiles from its middle along both the columns and the rows.
-  // Fitting that in the map means everything on screen is on the map.
-  const reach =
-    (state.viewWidth / HALF_W + state.viewHeight / HALF_H) / 4;
-  const tilePx = Math.min(w, h) / (2 * reach * MARGIN);
+  const { centerCol, centerRow, tilePx } = mapFrame(w, h, state);
 
   /** Grid space to map pixels. */
   const toMap = (col: number, row: number) => ({
@@ -83,28 +113,25 @@ export function drawMinimap(
   ctx.fillStyle = colors.map;
   ctx.fillRect(0, 0, w, h);
 
-  // The name, in grid space.
+  // From here on, in grid space: one unit per tile.
   const origin = toMap(0, 0);
-  ctx.setTransform(
-    dpr * tilePx,
-    0,
-    0,
-    dpr * tilePx,
-    dpr * origin.x,
-    dpr * origin.y,
-  );
+  ctx.setTransform(dpr * tilePx, 0, 0, dpr * tilePx, dpr * origin.x, dpr * origin.y);
   drawNameFlat(ctx, colors);
 
-  // Each village: its lot tinted in its colour, its middle solid.
-  for (const village of VILLAGES) {
-    const lot = lotOrigin(village);
-    ctx.globalAlpha = 0.18;
-    ctx.fillStyle = village.color;
-    ctx.fillRect(lot.col, lot.row, LOT, LOT);
-    ctx.globalAlpha = 1;
-    ctx.beginPath();
-    ctx.roundRect(village.col - 2, village.row - 2, 4, 4, 0.8);
-    ctx.fill();
+  // Each village: just its images, as they float over the lot, in its hue.
+  for (const plan of PLANS) {
+    ctx.fillStyle = plan.village.color;
+    for (const solid of plan.solids) {
+      const b = solid.box;
+      ctx.fillRect(b.c0, b.r0, b.c1 - b.c0, b.r1 - b.r0);
+    }
+  }
+
+  // Each place: a hairline outline of its card.
+  ctx.strokeStyle = colors.mid;
+  ctx.lineWidth = 1 / tilePx;
+  for (const place of PLACES) {
+    ctx.strokeRect(place.col + 0.15, place.row + 0.15, place.w - 0.3, place.d - 0.3);
   }
 
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -113,6 +140,7 @@ export function drawMinimap(
   drawPuck(ctx, chicken.x, chicken.y, state.facing, colors);
 }
 
+/** A small arrow on the map's edge for each landmark out of view. */
 function drawLandmarks(
   ctx: CanvasRenderingContext2D,
   w: number,
@@ -125,71 +153,32 @@ function drawLandmarks(
   const halfW = w / 2 - EDGE_INSET;
   const halfH = h / 2 - EDGE_INSET;
 
+  ctx.fillStyle = colors.strong;
+  ctx.globalAlpha = 0.4;
   for (const landmark of LANDMARKS) {
     const { x, y } = toMap(landmark.col, landmark.row);
     const dx = x - cx;
     const dy = y - cy;
-    const inside = Math.abs(dx) <= halfW && Math.abs(dy) <= halfH;
+    if (Math.abs(dx) <= halfW && Math.abs(dy) <= halfH) continue;
 
-    if (inside) {
-      if (landmark.kind !== "pin") continue;
-      ctx.beginPath();
-      ctx.arc(x, y, 4, 0, Math.PI * 2);
-      ctx.fillStyle = colors.orange;
-      ctx.fill();
-      ctx.lineWidth = 1.5;
-      ctx.strokeStyle = colors.map;
-      ctx.stroke();
-      continue;
-    }
-
-    // Out of range: an arrowhead on the edge, on the line towards it, with
-    // the landmark's name just inside.
-    const reach = Math.min(
-      halfW / Math.abs(dx || 1e-9),
-      halfH / Math.abs(dy || 1e-9),
-    );
-    const ex = cx + dx * reach;
-    const ey = cy + dy * reach;
-    const angle = Math.atan2(dy, dx);
-    const tint =
-      landmark.color ?? (landmark.kind === "pin" ? colors.orange : colors.ink[0]);
-
+    // On the edge, on the line from the middle towards it.
+    const reach = Math.min(halfW / Math.abs(dx || 1e-9), halfH / Math.abs(dy || 1e-9));
     ctx.save();
-    ctx.translate(ex, ey);
-    ctx.rotate(angle);
+    ctx.translate(cx + dx * reach, cy + dy * reach);
+    ctx.rotate(Math.atan2(dy, dx));
     ctx.beginPath();
-    ctx.moveTo(7, 0);
-    ctx.lineTo(-4, -5.5);
-    ctx.lineTo(-1.5, 0);
-    ctx.lineTo(-4, 5.5);
+    ctx.moveTo(5, 0);
+    ctx.lineTo(-3, -4);
+    ctx.lineTo(-1, 0);
+    ctx.lineTo(-3, 4);
     ctx.closePath();
-    ctx.fillStyle = tint;
     ctx.fill();
     ctx.restore();
-
-    ctx.font = `600 9px ${colors.mono}`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    const label = landmark.label.toUpperCase();
-    const labelW = ctx.measureText(label).width + 8;
-    const lx = Math.min(
-      w - labelW / 2 - 3,
-      Math.max(labelW / 2 + 3, ex - Math.cos(angle) * 16),
-    );
-    const ly = Math.min(h - 10, Math.max(10, ey - Math.sin(angle) * 14));
-    ctx.beginPath();
-    ctx.roundRect(lx - labelW / 2, ly - 7, labelW, 14, 3);
-    ctx.fillStyle = colors.map;
-    ctx.globalAlpha = 0.9;
-    ctx.fill();
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = tint;
-    ctx.fillText(label, lx, ly + 0.5);
   }
+  ctx.globalAlpha = 1;
 }
 
-/** The chicken, as a location puck with a cone showing where it faces. */
+/** The chicken: a dot with a faint cone showing where it faces. */
 function drawPuck(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -200,30 +189,25 @@ function drawPuck(
   // Grid axes are the map's axes, so a step (dc, dr) points along (dc, dr).
   const heading = Math.atan2(dr, dc);
   const spread = 0.62;
-  const cone = ctx.createRadialGradient(x, y, 0, x, y, 24);
-  cone.addColorStop(0, colors.blue);
-  cone.addColorStop(1, clear(colors.blue));
-  ctx.globalAlpha = 0.45;
+  const cone = ctx.createRadialGradient(x, y, 0, x, y, 18);
+  cone.addColorStop(0, colors.strong);
+  cone.addColorStop(1, clear(colors.strong));
+  ctx.globalAlpha = 0.2;
   ctx.beginPath();
   ctx.moveTo(x, y);
-  ctx.arc(x, y, 24, heading - spread, heading + spread);
+  ctx.arc(x, y, 18, heading - spread, heading + spread);
   ctx.closePath();
   ctx.fillStyle = cone;
   ctx.fill();
   ctx.globalAlpha = 1;
 
-  ctx.save();
-  ctx.shadowColor = "rgba(0, 0, 0, 0.35)";
-  ctx.shadowBlur = 4;
-  ctx.shadowOffsetY = 1;
   ctx.beginPath();
-  ctx.arc(x, y, 6.5, 0, Math.PI * 2);
-  ctx.fillStyle = "#ffffff";
+  ctx.arc(x, y, 5.5, 0, Math.PI * 2);
+  ctx.fillStyle = colors.map;
   ctx.fill();
-  ctx.restore();
 
   ctx.beginPath();
-  ctx.arc(x, y, 4.5, 0, Math.PI * 2);
-  ctx.fillStyle = colors.blue;
+  ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+  ctx.fillStyle = colors.strong;
   ctx.fill();
 }

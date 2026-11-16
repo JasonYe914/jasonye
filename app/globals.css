@@ -1,20 +1,14 @@
 @import "tailwindcss";
 
 /*
- * Two finishes, after the MacBook Pro's.
+ * Black and white, nothing else.
  *
- * Light: a drafting floor, near-white and ruled with a faint grid.
+ * Light: a white drafting floor ruled with a faint grey grid, solid black
+ * type, and soft grey shadows. Every grey is neutral: no warm or cool tint.
  *
- * Dark: Apple's product-page black. The floor is lifted just off it, so the
- * grid reads as faint etching. The accents shift to their dark-mode system
- * colours, and the pale blue sinks to a deep navy so it doesn't glow.
- *
- * The name runs through the spectrum Apple paints its headline gradients
- * with on the MacBook Pro and Apple Intelligence pages: blue, violet,
- * magenta, orange, from the first letter to the last. Its ends pick up the
- * blue and orange accent tiles. In light mode the colours are deep, so the
- * letters keep their weight on white; in dark mode they brighten to glow
- * against black.
+ * Dark: the same page inverted. The floor sits just off black, the grid is
+ * a faint etching, and the type turns white. Shadows deepen rather than
+ * lighten, so lifted things still read as lifted.
  *
  * The site starts light; dark is used only once a visitor picks it. The
  * page is all canvas, so it needs JavaScript anyway, and the theme script
@@ -22,84 +16,109 @@
  */
 :root {
   color-scheme: light;
-  --background: #f4f4f2;
-  --fog: #f4f4f2;
-  --foreground: #1d1d1f;
-  --floor: #f7f7f5;
-  --floor-side: #deded9;
-  --floor-line: #e2e2dd;
-  --floor-mark: #a6a6a0;
+  --background: #f5f5f5;
+  --fog: #f5f5f5;
+  --foreground: #0a0a0a;
+  --floor: #fafafa;
+  --floor-side: #e0e0e0;
+  --floor-line: #e8e8e8;
+  --floor-mark: #a3a3a3;
   /* The minimap's ground. */
-  --map-floor: #f7f7f5;
+  --map-floor: #fafafa;
   /* The tile under the chicken: a step darker, with a crisp edge. */
-  --tile-here: #e9e9e4;
+  --tile-here: #ededed;
   --tile-here-edge: rgb(0 0 0 / 0.2);
-  --shadow: rgb(0 0 0 / 0.16);
-  --ink-1: #0a63d8;
-  --ink-2: #6d3be8;
-  --ink-3: #d6307e;
-  --ink-4: #f0701c;
-  --accent-orange: #f6a723;
-  --accent-blue: #2d8cff;
-  --accent-sky: #bddcfb;
-  --chrome: rgb(255 255 255 / 0.72);
+  --shadow: rgb(0 0 0 / 0.14);
+  /* Under the floating landmarks: darker, since it is blurred wide. */
+  --float-shadow: rgb(0 0 0 / 0.3);
+  /* The name, and the tiles scattered between its letters. */
+  /* The name runs through the villages' hues, first letter to last:
+     Queen's blue, Playtoon's violet, Get-Into's coral, Wayfinder's amber. */
+  --name-1: #4c7bd9;
+  --name-2: #8b6cdb;
+  --name-3: #e0705a;
+  --name-4: #e2a33b;
+  --accent-strong: #0a0a0a;
+  --accent-mid: #737373;
+  --accent-soft: #d4d4d4;
+  --chrome: rgb(255 255 255 / 0.94);
   --chrome-border: rgb(0 0 0 / 0.08);
-  --chrome-shadow: 0 8px 28px rgb(0 0 0 / 0.1), 0 1px 2px rgb(0 0 0 / 0.06);
-  --muted: #6e6e73;
+  --chrome-shadow: 0 8px 28px rgb(0 0 0 / 0.08), 0 1px 2px rgb(0 0 0 / 0.06);
+  --muted: #737373;
+  /* The projects gallery: white cards on the grey page, with an inset
+     well for each picture and a soft grey for its buttons. */
+  --card: #ffffff;
+  --card-well: #f2f2f2;
+  --card-ink: #d9d9d9;
+  --card-button: #f0f0f0;
+  --card-button-hover: #e6e6e6;
+  /* Emblems: a black tile with a white mark. */
+  --emblem-tile: #0a0a0a;
+  --emblem-mark: #fafafa;
   /* What the villages are built from. Kept as hex: the canvas shades them. */
-  --obj-stone: #e6e0d2;
-  --obj-roof: #6f9c88;
-  --obj-dark: #2c2c30;
-  --obj-paper: #fbfbf8;
-  --obj-road: #d6d6d0;
-  --obj-line: #c6c6c0;
-  --obj-muted: #c9c9cf;
-  --obj-z1: #cfe3fb;
-  --obj-z2: #e3dafb;
-  --obj-z3: #fde0d2;
-  --obj-plaza: #ebeae4;
-  --obj-stall: #f1efe8;
+  --obj-stone: #e5e5e5;
+  --obj-roof: #525252;
+  --obj-dark: #262626;
+  --obj-paper: #fafafa;
+  --obj-road: #d4d4d4;
+  --obj-line: #c4c4c4;
+  --obj-muted: #a8a8a8;
+  --obj-z1: #ececec;
+  --obj-z2: #e0e0e0;
+  --obj-z3: #d6d6d6;
+  --obj-plaza: #ebebeb;
+  --obj-stall: #f0f0f0;
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --background: #000000;
-  --fog: #000000;
-  --foreground: #f5f5f7;
-  --floor: #0b0b0c;
+  --background: #0a0a0a;
+  --fog: #0a0a0a;
+  --foreground: #f5f5f5;
+  --floor: #0e0e0e;
   --floor-side: #000000;
-  --floor-line: #1c1c1e;
-  --floor-mark: #48484a;
+  --floor-line: #1f1f1f;
+  --floor-mark: #525252;
   /* Lifted a step above the floor, so the map reads as a panel. */
-  --map-floor: #1a1a1c;
-  /* On black a darker tile would vanish, so this one is lifted instead,
-     which also gives the chicken's shadow something to fall on. */
-  --tile-here: #1f1f22;
+  --map-floor: #171717;
+  /* On near-black a darker tile would vanish, so this one is lifted
+     instead, which also gives the chicken's shadow something to fall on. */
+  --tile-here: #1f1f1f;
   --tile-here-edge: rgb(255 255 255 / 0.24);
   --shadow: rgb(0 0 0 / 0.8);
-  --ink-1: #2997ff;
-  --ink-2: #a35cff;
-  --ink-3: #ff4f8b;
-  --ink-4: #ff9f0a;
-  --accent-orange: #ff9f0a;
-  --accent-blue: #2997ff;
-  --accent-sky: #17324f;
-  --chrome: rgb(29 29 31 / 0.72);
+  --float-shadow: rgb(0 0 0 / 0.95);
+  /* A little lighter, so the letters glow on the dark floor. */
+  --name-1: #7096e1;
+  --name-2: #a28ae2;
+  --name-3: #e68d7b;
+  --name-4: #e8b562;
+  --accent-strong: #f5f5f5;
+  --accent-mid: #8a8a8a;
+  --accent-soft: #2e2e2e;
+  --chrome: rgb(23 23 23 / 0.94);
   --chrome-border: rgb(255 255 255 / 0.1);
   --chrome-shadow: 0 8px 28px rgb(0 0 0 / 0.55), 0 1px 2px rgb(0 0 0 / 0.4);
-  --muted: #98989d;
-  --obj-stone: #8c867a;
-  --obj-roof: #4f7a68;
-  --obj-dark: #3c3c42;
-  --obj-paper: #e6e6e1;
-  --obj-road: #232326;
-  --obj-line: #3a3a3e;
-  --obj-muted: #4a4a52;
-  --obj-z1: #17324f;
-  --obj-z2: #2b2150;
-  --obj-z3: #4a2618;
-  --obj-plaza: #161618;
-  --obj-stall: #5a5752;
+  --muted: #a3a3a3;
+  --card: #141414;
+  --card-well: #1c1c1c;
+  --card-ink: #333333;
+  --card-button: #1f1f1f;
+  --card-button-hover: #2a2a2a;
+  --emblem-tile: #f5f5f5;
+  --emblem-mark: #0a0a0a;
+  --obj-stone: #8a8a8a;
+  --obj-roof: #5c5c5c;
+  --obj-dark: #3d3d3d;
+  /* Dark, so the white words painted on plaques still read. */
+  --obj-paper: #262626;
+  --obj-road: #1f1f1f;
+  --obj-line: #3a3a3a;
+  --obj-muted: #5a5a5a;
+  --obj-z1: #1c1c1c;
+  --obj-z2: #232323;
+  --obj-z3: #2a2a2a;
+  --obj-plaza: #141414;
+  --obj-stall: #575757;
 }
 
 @theme inline {
@@ -136,14 +155,14 @@ body {
     );
 }
 
-/* Frosted glass, like the controls on Apple's product pages. */
+/* Panels over the world. Nearly opaque rather than frosted: a backdrop
+   blur over a canvas that repaints every frame has to be redone every
+   frame, which is most of what made walking stutter. */
 .chrome {
   color: var(--foreground);
   background: var(--chrome);
   border: 1px solid var(--chrome-border);
   box-shadow: var(--chrome-shadow);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
 }
 
 /*
@@ -160,13 +179,13 @@ body {
  *   --nav-tip-bg/fg the name label
  */
 
-/* Aluminum (default): Apple's light system grey, with the current page
+/* Aluminum (default): a neutral light grey, with the current page
    lifted out as a white disc, like a selected segment in macOS. */
 .nav-bar[data-palette="aluminum"] {
-  --nav-bg: rgb(209 209 214 / 0.9);
+  --nav-bg: rgb(212 212 212 / 0.9);
   --nav-edge: rgb(0 0 0 / 0.08);
-  --nav-icon: #58585d;
-  --nav-icon-on: #1d1d1f;
+  --nav-icon: #525252;
+  --nav-icon-on: #0a0a0a;
   --nav-hover: rgb(0 0 0 / 0.07);
   --nav-current: #ffffff;
   --nav-current-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
@@ -174,12 +193,12 @@ body {
   --nav-tip-fg: #f5f5f7;
 }
 :root[data-theme="dark"] .nav-bar[data-palette="aluminum"] {
-  --nav-bg: rgb(32 32 34 / 0.9);
+  --nav-bg: rgb(32 32 32 / 0.9);
   --nav-edge: rgb(255 255 255 / 0.08);
-  --nav-icon: #98989d;
-  --nav-icon-on: #f5f5f7;
+  --nav-icon: #a3a3a3;
+  --nav-icon-on: #f5f5f5;
   --nav-hover: rgb(255 255 255 / 0.08);
-  --nav-current: #48484a;
+  --nav-current: #474747;
   --nav-current-shadow: 0 1px 3px rgb(0 0 0 / 0.4);
   --nav-tip-bg: #f5f5f7;
   --nav-tip-fg: #1d1d1f;
@@ -276,8 +295,6 @@ body {
   background: var(--nav-bg);
   border: 1px solid var(--nav-edge);
   box-shadow: var(--chrome-shadow);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
   transition:
     background-color 200ms ease-out,
     border-color 200ms ease-out;
@@ -308,7 +325,7 @@ body {
   box-shadow: var(--nav-current-shadow);
 }
 .nav-item:focus-visible {
-  outline: 2px solid var(--accent-blue);
+  outline: 2px solid var(--foreground);
   outline-offset: 2px;
 }
 
@@ -386,7 +403,7 @@ body {
   }
 }
 .village-card:focus-visible {
-  outline: 2px solid var(--accent-blue);
+  outline: 2px solid var(--foreground);
   outline-offset: 3px;
 }
 .village-card-body {
@@ -426,6 +443,19 @@ body {
   border-bottom-width: 2px;
   border-radius: 4px;
   color: var(--foreground);
+}
+
+/* Emblems take their two greys from the theme: the mark is drawn in
+   currentColor, and the accents pick the tile's grey back up. */
+.emblem {
+  color: var(--emblem-mark);
+}
+.emblem-tile,
+.emblem-fill {
+  fill: var(--emblem-tile);
+}
+.emblem-stroke {
+  stroke: var(--emblem-tile);
 }
 
 /* The full sheet: a side panel on wide screens, a bottom sheet on phones. */
@@ -575,61 +605,13 @@ body {
   font-size: 14px;
 }
 .village-sheet-links a {
-  color: var(--accent-blue);
+  color: var(--foreground);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
 }
 .village-sheet-hint {
   font-size: 11.5px;
-  color: var(--muted);
-}
-
-/* Fast travel: the villages, listed beside the dock. */
-.travel-menu {
-  position: absolute;
-  left: calc(100% + 12px);
-  top: 50%;
-  transform: translateY(-50%);
-  width: 260px;
-  padding: 8px;
-  border-radius: 16px;
-  animation: village-rise 180ms ease-out;
-}
-.travel-menu-title {
-  padding: 6px 8px 8px;
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.travel-menu button {
-  width: 100%;
-  display: grid;
-  grid-template-columns: 28px minmax(0, 1fr);
-  gap: 10px;
-  align-items: center;
-  padding: 6px 8px;
-  border-radius: 10px;
-  text-align: left;
-}
-.travel-menu button:hover,
-.travel-menu button:focus-visible {
-  background: var(--chrome-border);
-  outline: none;
-}
-.travel-menu button > span {
-  display: grid;
-  min-width: 0;
-}
-.travel-name {
-  font-size: 13.5px;
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.travel-meta {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
-  font-size: 10.5px;
   color: var(--muted);
 }
 
@@ -637,15 +619,6 @@ body {
   from {
     opacity: 0;
     transform: translateY(6px);
-  }
-}
-.travel-menu {
-  animation-name: travel-in;
-}
-@keyframes travel-in {
-  from {
-    opacity: 0;
-    transform: translate(-4px, -50%);
   }
 }
 @keyframes village-slide {
@@ -657,7 +630,1230 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .village-card,
   .village-sheet,
-  .travel-menu {
+  .gallery,
+  .gallery-card,
+  .project {
     animation: none;
+  }
+}
+
+/* ---------- Projects gallery ---------- */
+
+/* Covers the world, below the dock (z 40) and the details sheet (z 45),
+   and leaves room on the left for the dock. */
+.gallery {
+  position: fixed;
+  inset: 0;
+  z-index: 38;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--background);
+  padding: 40px 24px 64px 96px;
+  outline: none;
+  animation: gallery-in 220ms ease-out;
+}
+/* Back from a project's page: already there, so nothing of the world
+   shows through while it would be fading in. */
+.gallery-instant {
+  animation: none;
+}
+@media (max-width: 699px) {
+  .gallery {
+    padding: 24px 16px 48px 84px;
+  }
+}
+.gallery-head,
+.gallery-grid {
+  max-width: 1240px;
+  margin: 0 auto;
+}
+.gallery-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.gallery-head h2 {
+  font-size: clamp(28px, 4vw, 40px);
+  font-weight: 650;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+}
+/* A square made like the cards below it: the same white surface, hairline
+   border and soft shadow, with the corner radius of their buttons, and
+   the same fill to ink on hover. */
+.gallery-close {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  color: var(--foreground);
+  background: var(--card);
+  border: 1px solid var(--chrome-border);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out;
+}
+.gallery-close:hover {
+  color: var(--background);
+  background: var(--foreground);
+}
+.gallery-close svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* Lanes of different widths, each a stack of cards of its own heights.
+   The lanes stretch to the tallest, and the last card in each grows to
+   meet the bottom, so the gallery ends on one straight line. */
+.gallery-grid {
+  display: grid;
+  gap: 14px;
+  align-items: stretch;
+}
+.gallery-lane {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+.gallery-lane > .gallery-card:last-child {
+  flex: 1 1 auto;
+}
+.gallery-frame {
+  position: relative;
+  flex: 1 1 auto;
+}
+/* The picture's own shape, plus a strip along the foot for the name. */
+.gallery-sizer {
+  box-sizing: content-box;
+  width: 100%;
+  max-height: 560px;
+  padding-bottom: 28px;
+}
+.gallery-frame > .gallery-media {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  max-height: none;
+}
+/* A stretched card keeps its sketched window in a window's shape. */
+.gallery-frame .ph-window {
+  height: auto;
+  aspect-ratio: 16 / 9;
+  max-height: 80%;
+}
+
+/* A card is its picture and one button, nothing else. */
+.gallery-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 16px;
+  background: var(--card);
+  border: 1px solid var(--chrome-border);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+  animation: village-rise 320ms ease-out both;
+}
+.gallery-lane > .gallery-card:nth-child(2) {
+  animation-delay: 60ms;
+}
+.gallery-lane > .gallery-card:nth-child(3) {
+  animation-delay: 120ms;
+}
+.gallery-lane > .gallery-card:nth-child(n + 4) {
+  animation-delay: 180ms;
+}
+/* The name sits on the grid in the picture's bottom-left corner, so a
+   placeholder needn't repeat it, and the picture keeps clear of it. */
+.gallery-frame .ph-caption {
+  display: none;
+}
+.gallery-frame > .gallery-media {
+  padding-bottom: 28px;
+}
+/* Set like the sketches' old captions: small mono capitals, muted. */
+.gallery-card-name {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 10px;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 10.5px;
+  font-weight: 400;
+  line-height: 1.3;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gallery-card-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 38px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--card-button);
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out;
+}
+.gallery-card-link:hover {
+  background: var(--foreground);
+  color: var(--background);
+}
+.gallery-card-link:focus-visible,
+.gallery-close:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 2px;
+}
+.gallery-card-link svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 150ms ease-out;
+}
+.gallery-card-link:hover svg {
+  transform: translateX(2px);
+}
+
+/* ---------- A project's own page ---------- */
+
+.project {
+  max-width: 880px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 32px 24px 80px;
+  display: grid;
+  gap: 32px;
+  animation: gallery-in 260ms ease-out;
+}
+@media (max-width: 599px) {
+  .project {
+    padding: 20px 16px 56px;
+    gap: 24px;
+  }
+}
+.project-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  font-size: 13px;
+}
+.project-nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  transition: color 150ms ease-out;
+}
+.project-nav a:hover {
+  color: var(--foreground);
+}
+.project-nav svg,
+.project-foot svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.project-world {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.project-head {
+  display: grid;
+  gap: 8px;
+}
+.project-meta {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.project-head h1 {
+  font-size: clamp(34px, 6vw, 56px);
+  font-weight: 650;
+  line-height: 1;
+  letter-spacing: -0.035em;
+}
+.project-role {
+  font-size: 15px;
+  color: var(--muted);
+}
+.gallery-media.project-media {
+  width: 100%;
+  max-height: 70vh;
+  border-radius: 14px;
+}
+.project-body {
+  display: grid;
+  gap: 32px;
+  max-width: 640px;
+}
+.project-summary {
+  font-size: 19px;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+}
+.project-numbers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  border-top: 1px solid var(--foreground);
+}
+.project-numbers div {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 4px;
+  padding: 14px 16px 0 0;
+}
+.project-numbers dd {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.project-numbers dt {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.project-points {
+  display: grid;
+  gap: 20px;
+}
+.project-points li {
+  display: grid;
+  gap: 4px;
+  padding-top: 14px;
+  border-top: 1px solid var(--chrome-border);
+}
+.project-points h2 {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+.project-points p {
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+.project-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.project-tools li {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 12px;
+  padding: 4px 10px;
+  border: 1px solid var(--chrome-border);
+  color: var(--muted);
+}
+.project-tools li[data-core] {
+  color: var(--foreground);
+  border-color: var(--foreground);
+}
+.project-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 15px;
+}
+.project-links a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+.project-foot {
+  padding-top: 20px;
+  border-top: 1px solid var(--chrome-border);
+}
+.project-foot a {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 17px;
+  font-weight: 550;
+}
+.project-foot span {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.project-foot svg {
+  transition: transform 150ms ease-out;
+}
+.project-foot a:hover svg {
+  transform: translateX(3px);
+}
+.project-nav a:focus-visible,
+.project-foot a:focus-visible,
+.project-links a:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 3px;
+}
+
+/* Placeholder pictures: a sketch of what will go there, in the page's
+   greys, on a faint drafting grid. */
+.gallery-media {
+  position: relative;
+  display: grid;
+  place-items: center;
+  max-height: 560px;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 11px;
+  background-color: var(--card-well);
+  background-image:
+    linear-gradient(var(--card-ink) 1px, transparent 1px),
+    linear-gradient(90deg, var(--card-ink) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-position: -1px -1px;
+  --ph-ink: var(--card-ink);
+}
+.gallery-media::before {
+  /* Fades the grid towards the middle so the sketch reads first. */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    closest-side,
+    var(--card-well) 35%,
+    color-mix(in srgb, var(--card-well) 55%, transparent)
+  );
+}
+.gallery-media > * {
+  position: relative;
+}
+/* A real image needs no drafting grid: just the plain well behind it. */
+.gallery-media[data-kind="image"] {
+  background-image: none;
+}
+.gallery-media[data-kind="image"]::before {
+  content: none;
+}
+/* The image itself fills the box edge to edge, as a cover. */
+.gallery-media[data-kind="image"] {
+  place-items: stretch;
+}
+.gallery-media .media-shot {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: cover;
+  border-radius: inherit;
+}
+/* In a gallery card the name has its own strip under the picture. */
+.gallery-frame .media-shot {
+  border-radius: 11px 11px 0 0;
+}
+.gallery-media b {
+  display: block;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--ph-ink);
+}
+.gallery-media .ph-caption {
+  position: absolute;
+  left: 10px;
+  bottom: 8px;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.ph-window {
+  width: 78%;
+  height: 66%;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  border-radius: 8px;
+  background: var(--card);
+  border: 1px solid var(--chrome-border);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.08);
+  overflow: hidden;
+}
+.ph-bar {
+  display: flex;
+  gap: 4px;
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--chrome-border);
+}
+.ph-bar i {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--ph-ink);
+}
+.ph-body {
+  display: grid;
+  grid-template-columns: 22% 1fr;
+  min-height: 0;
+}
+.ph-side {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 10px 8px;
+  border-right: 1px solid var(--chrome-border);
+}
+.ph-main {
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  gap: 8px;
+  padding: 10px;
+  min-height: 0;
+}
+.gallery-media .ph-title {
+  width: 45%;
+  height: 8px;
+}
+.ph-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.gallery-media .ph-tiles b {
+  height: 22px;
+  border-radius: 5px;
+}
+.gallery-media .ph-chart {
+  height: auto;
+  min-height: 24px;
+  border-radius: 6px;
+  background:
+    linear-gradient(to top, var(--ph-ink) 0 2px, transparent 2px),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 6%,
+      color-mix(in srgb, var(--ph-ink) 70%, transparent) 6% 9%
+    );
+  opacity: 0.8;
+}
+
+.ph-phone {
+  height: 80%;
+  aspect-ratio: 9 / 19;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 12px 10px;
+  border-radius: 22px;
+  background: var(--card);
+  border: 1px solid var(--chrome-border);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.08);
+}
+.gallery-media .ph-notch {
+  justify-self: center;
+  width: 30%;
+  height: 5px;
+}
+.ph-phone .ph-chart {
+  aspect-ratio: 1;
+  margin: 6px 0;
+}
+.gallery-media .ph-short {
+  width: 60%;
+}
+
+.ph-dialog {
+  width: 56%;
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 10px;
+  background: var(--card);
+  border: 1px solid var(--chrome-border);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.08);
+}
+
+.ph-photo {
+  width: 22%;
+  min-width: 44px;
+  max-width: 88px;
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@keyframes gallery-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ---------- World settings ---------- */
+
+/* What the visitor has hidden in the settings. */
+:root[data-minimap="off"] .world-map {
+  display: none;
+}
+:root[data-coords="off"] .map-coords {
+  display: none;
+}
+
+.nav-item[data-open] {
+  color: var(--nav-icon-on);
+  background: var(--nav-hover);
+}
+
+/* The settings panel, beside the dock where its button is. */
+.settings-menu {
+  position: absolute;
+  left: calc(100% + 12px);
+  bottom: 0;
+  width: 272px;
+  padding: 10px;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--background) 94%, transparent);
+  display: grid;
+  gap: 10px;
+  animation: settings-in 180ms ease-out;
+}
+.settings-title {
+  padding: 4px 6px 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.settings-group {
+  display: grid;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--chrome-border);
+}
+.settings-label {
+  padding: 0 6px;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.settings-zoom {
+  display: grid;
+  grid-template-columns: 36px 1fr 36px;
+  gap: 4px;
+}
+.settings-zoom button,
+.settings-row-button {
+  display: grid;
+  place-items: center;
+  height: 34px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--chrome-border);
+  transition: background-color 150ms ease-out;
+}
+.settings-row-button {
+  justify-items: start;
+  padding: 0 10px;
+}
+.settings-zoom svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.settings-zoom button:hover,
+.settings-row-button:hover {
+  background: color-mix(in srgb, var(--foreground) 12%, transparent);
+}
+
+.settings-switch {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 6px;
+  border-radius: 10px;
+  text-align: left;
+}
+.settings-switch:hover {
+  background: var(--chrome-border);
+}
+.settings-switch:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.settings-switch:disabled:hover {
+  background: none;
+}
+.settings-switch-label {
+  font-size: 13px;
+  font-weight: 500;
+}
+.settings-switch-track {
+  position: relative;
+  width: 34px;
+  height: 20px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--foreground) 18%, transparent);
+  transition: background-color 160ms ease-out;
+}
+.settings-switch-track::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--background);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
+  transition: transform 160ms ease-out;
+}
+.settings-switch[aria-checked="true"] .settings-switch-track {
+  background: var(--foreground);
+}
+.settings-switch[aria-checked="true"] .settings-switch-track::after {
+  transform: translateX(14px);
+}
+.settings-menu button:focus-visible,
+.guide button:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 2px;
+}
+@keyframes settings-in {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+}
+
+/* ---------- Controls guide ---------- */
+
+/* A strip of pictures, one word under each, shown once after the intro at
+   the top of the view, clear of the name, the chicken and the minimap. */
+.guide {
+  position: fixed;
+  z-index: 36;
+  left: 50%;
+  top: 24px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 14px 14px 14px 22px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--background) 94%, transparent);
+  animation:
+    guide-in 320ms ease-out,
+    guide-bob 3s ease-in-out 320ms infinite;
+}
+@media (max-width: 639px) {
+  .guide {
+    left: 84px;
+    right: 12px;
+    bottom: 12px;
+    transform: none;
+    flex-direction: column;
+    animation-name: guide-in-flat, guide-bob;
+  }
+}
+.guide-rows {
+  display: flex;
+  gap: 22px;
+}
+.guide-rows li {
+  display: grid;
+  justify-items: center;
+  align-content: end;
+  gap: 8px;
+}
+.guide-keys {
+  display: grid;
+  place-items: center;
+  height: 46px;
+}
+.guide-label {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+/* W on top, then A S D, laid out like the keys. */
+.guide-wasd {
+  display: grid;
+  grid-template-columns: repeat(3, 22px);
+  gap: 3px;
+}
+.guide-wasd > :first-child {
+  grid-column: 2;
+}
+.guide-wasd > :nth-child(2) {
+  grid-column: 1;
+}
+.guide-key {
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border-radius: 5px;
+  border: 1px solid var(--chrome-border);
+  border-bottom-width: 2px;
+  background: var(--background);
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--foreground);
+}
+.guide-key.is-wide {
+  min-width: 52px;
+}
+.guide-mouse {
+  width: 34px;
+  height: 34px;
+  fill: none;
+  stroke: var(--foreground);
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+}
+.guide-mouse .guide-mouse-on {
+  fill: var(--foreground);
+  stroke: none;
+}
+.guide-ok {
+  flex-shrink: 0;
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--background);
+  background: var(--foreground);
+}
+.guide-ok:hover {
+  opacity: 0.88;
+}
+/*
+ * The whole strip bobs gently once it is in. It moves with `translate`,
+ * which adds to the centring `transform` instead of replacing it.
+ */
+@keyframes guide-bob {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -4px;
+  }
+}
+@keyframes guide-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -8px);
+  }
+}
+@keyframes guide-in-flat {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .settings-menu,
+  .guide {
+    animation: none;
+  }
+}
+
+/* ---------- Contact ---------- */
+
+/* A soft veil over the world, with one card in the middle of it. Sits
+   above the gallery and the about page, below the dock, and leaves room on
+   the left for it. */
+.contact-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 39;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px 24px 84px;
+  background: color-mix(in srgb, var(--background) 55%, transparent);
+  animation: gallery-in 200ms ease-out;
+}
+.contact {
+  width: min(440px, 100%);
+  padding: 22px 18px 18px;
+  border-radius: 22px;
+  background: var(--card);
+  border: 1px solid var(--chrome-border);
+  box-shadow:
+    0 24px 60px rgb(0 0 0 / 0.12),
+    0 2px 6px rgb(0 0 0 / 0.05);
+  outline: none;
+  animation: village-rise 280ms ease-out both;
+}
+:root[data-theme="dark"] .contact {
+  box-shadow:
+    0 24px 60px rgb(0 0 0 / 0.6),
+    0 2px 6px rgb(0 0 0 / 0.4);
+}
+.contact-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 4px 0 6px;
+  margin-bottom: 16px;
+}
+/* The friendly face of the name, with a short stripe of its hues. */
+.contact-head h2 {
+  font-family: var(--font-fun), var(--font-geist-sans), sans-serif;
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+.contact-head h2::after {
+  content: "";
+  display: block;
+  width: 56px;
+  height: 4px;
+  margin-top: 8px;
+  border-radius: 2px;
+  background: linear-gradient(
+    90deg,
+    var(--name-1) 0 25%,
+    var(--name-2) 25% 50%,
+    var(--name-3) 50% 75%,
+    var(--name-4) 75%
+  );
+}
+.contact-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.contact-row {
+  position: relative;
+  animation: village-rise 300ms ease-out both;
+}
+.contact-row:nth-child(2) {
+  animation-delay: 50ms;
+}
+.contact-row:nth-child(3) {
+  animation-delay: 100ms;
+}
+.contact-link {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 12px 10px 10px;
+  border-radius: 14px;
+  background: var(--card-well);
+  transition: background-color 150ms ease-out;
+}
+.contact-link:hover {
+  background: color-mix(in srgb, var(--hue) 12%, var(--card));
+}
+.contact-tile {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  color: #fff;
+  background: var(--hue);
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--hue) 70%, #000);
+  transition: transform 150ms ease-out;
+}
+.contact-link:hover .contact-tile {
+  transform: translateY(-2px) rotate(-4deg);
+}
+.contact-tile svg,
+.contact-arrow {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.contact-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.contact-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.contact-value {
+  font-size: 15px;
+  font-weight: 550;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.contact-arrow {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: var(--muted);
+  transition:
+    transform 150ms ease-out,
+    color 150ms ease-out;
+}
+.contact-link:hover .contact-arrow {
+  color: var(--hue);
+  transform: translate(2px, -2px);
+}
+/* Email's row makes room for its copy button where the arrow sits. */
+.contact-row:has(.contact-copy) .contact-arrow {
+  display: none;
+}
+.contact-row:has(.contact-copy) .contact-link {
+  padding-right: 84px;
+}
+.contact-copy {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  min-width: 64px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--card);
+  border: 1px solid var(--chrome-border);
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out;
+}
+.contact-copy:hover {
+  background: var(--foreground);
+  color: var(--background);
+}
+.contact-link:focus-visible,
+.contact-copy:focus-visible {
+  outline: 2px solid var(--hue);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .contact-scrim,
+  .contact,
+  .contact-row {
+    animation: none;
+  }
+  .contact-tile,
+  .contact-arrow {
+    transition: none;
+  }
+}
+
+/* ---------- About ---------- */
+
+/*
+ * A magazine spread: one grid, with the words down the left and a mosaic
+ * of pictures beside them, as tall as the words:
+ *     words  iso     building building
+ *     words  top     top      campus
+ * The seams stagger between the rows, and each cell is close to its
+ * picture's own shape, so little is cropped. The pictures sit in grey like
+ * the world and take their colour on hover.
+ */
+.about-sheet {
+  display: grid;
+  grid-template-columns: minmax(340px, 1.35fr) repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(240px, 1fr));
+  grid-template-areas:
+    "t a b b"
+    "t c c d";
+  gap: 12px;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 48px;
+  border-radius: 20px;
+  background: var(--card);
+  border: 1px solid var(--chrome-border);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+  animation: village-rise 320ms cubic-bezier(0, 0, 0.2, 1) both;
+}
+.about .gallery-head {
+  max-width: 1440px;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+
+/* The words: title, intro, then the path, down the left. */
+.about-words {
+  grid-area: t;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+  padding-right: 28px;
+}
+.about-title {
+  font-size: clamp(36px, 4vw, 56px);
+  font-weight: 300;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+.about-lead {
+  max-width: 46ch;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+/* The path: one line per stop, year first, newest at the top. Each line
+   is a button back into the world. */
+.about-label {
+  padding-top: 20px;
+  border-top: 1px solid var(--chrome-border);
+  font-size: 12.8px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.about-path {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+.about-path button {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 12px;
+  width: calc(100% + 16px);
+  margin-left: -8px;
+  min-height: 38px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  text-align: left;
+  font-size: 15px;
+  line-height: 1.3;
+  transition: background-color 150ms ease-out;
+}
+.about-path button:hover {
+  background: var(--card-well);
+}
+.about-path button:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 1px;
+}
+.about-path strong {
+  font-weight: 550;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.about-year,
+.about-kind {
+  font-size: 12.8px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Sized only by their cells, so the words set the height of the rows. */
+.about-photo {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  contain: size;
+  object-fit: cover;
+  border-radius: 10px;
+  filter: grayscale(1);
+  transition: filter 300ms ease-out;
+}
+.about-photo:hover {
+  filter: none;
+}
+
+/* Narrow: the words on top, then the pictures two by two, each cell
+   shaped by its picture. */
+@media (max-width: 899px) {
+  .about-sheet {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+    grid-template-rows: auto;
+    grid-template-areas:
+      "t t"
+      "a b"
+      "c c"
+      "d d";
+    padding: 32px 24px 28px;
+  }
+  .about-words {
+    padding: 0 0 20px;
+  }
+  .about-photo {
+    height: auto;
+  }
+  /* The square engine sets the row; the building fills beside it. */
+  .about-photo[data-area="a"] {
+    aspect-ratio: 1;
+  }
+  .about-photo[data-area="b"] {
+    height: 100%;
+  }
+  .about-photo[data-area="c"] {
+    aspect-ratio: 1.54;
+  }
+  .about-photo[data-area="d"] {
+    aspect-ratio: 1.67;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .about-sheet {
+    animation: none;
+  }
+  .about-photo,
+  .about-path button {
+    transition: none;
   }
 }

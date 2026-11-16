@@ -38,11 +38,12 @@ export type Palette = {
   hereEdge: string;
   /** The chicken's shadow. */
   shadow: string;
-  /** The name's gradient, from the back of the floor to the front. */
+  /** The name's gradient stops, from its first letter to its last. */
   ink: string[];
-  orange: string;
-  blue: string;
-  sky: string;
+  /** The three greys of the accent tiles, darkest first in light mode. */
+  strong: string;
+  mid: string;
+  soft: string;
   /** Font family for text painted on canvas. */
   mono: string;
 };
@@ -59,10 +60,10 @@ export function readPalette(): Palette {
     here: read("--tile-here"),
     hereEdge: read("--tile-here-edge"),
     shadow: read("--shadow"),
-    ink: [read("--ink-1"), read("--ink-2"), read("--ink-3"), read("--ink-4")],
-    orange: read("--accent-orange"),
-    blue: read("--accent-blue"),
-    sky: read("--accent-sky"),
+    ink: [read("--name-1"), read("--name-2"), read("--name-3"), read("--name-4")],
+    strong: read("--accent-strong"),
+    mid: read("--accent-mid"),
+    soft: read("--accent-soft"),
     mono: `${read("--font-geist-mono") || "ui-monospace"}, monospace`,
   };
 }

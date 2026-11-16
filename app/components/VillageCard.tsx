@@ -29,27 +29,11 @@ export default function VillageCard() {
       ? village.summary
       : `${village.role} · ${village.dates}`;
 
+  // No card on screen: the landmark itself is enough, and E opens the
+  // details. Screen readers still hear where the chicken has arrived.
   return (
-    <div aria-live="polite">
-      <button
-        type="button"
-        className="village-card chrome"
-        onClick={() => villageStore.openSheet(village.id)}
-      >
-        <Emblem id={village.id} color={village.color} size={40} />
-        <span className="village-card-body">
-          <span className="village-card-title">{title}</span>
-          <span className="village-card-text">{text}</span>
-        </span>
-        <span className="village-card-foot">
-          <span>
-            {village.short} · {focus.visited} of {focus.total} visited
-          </span>
-          <span>
-            <kbd>E</kbd> details
-          </span>
-        </span>
-      </button>
+    <div className="sr-only" aria-live="polite">
+      {title}. {text}. Press E for details.
     </div>
   );
 }

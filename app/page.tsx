@@ -2,6 +2,7 @@ import Loader from "./components/Loader";
 import NavBar from "./components/NavBar";
 import VillageCard, { VillageIndex } from "./components/VillageCard";
 import World from "./components/World";
+import WorldGuide from "./components/WorldGuide";
 
 export default function Home() {
   return (
@@ -12,6 +13,7 @@ export default function Home() {
       <World />
       <NavBar />
       <VillageCard />
+      <WorldGuide />
       <Loader />
     </main>
   );

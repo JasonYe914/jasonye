@@ -2,8 +2,8 @@ import { NAME_CENTER } from "./name";
 import { VILLAGES } from "./villages";
 
 /**
- * A place in the world worth finding. The minimap points to the ones out of
- * its range from the edge, so the world can be explored by map.
+ * A place in the world worth finding. The minimap points an arrow at the
+ * ones out of its range, so the world can be explored by map.
  */
 export type Landmark = {
   id: string;
@@ -17,8 +17,6 @@ export type Landmark = {
    * "pin": a marker is drawn for it on the map.
    */
   kind: "area" | "pin";
-  /** The arrow and label colour, if not the default. */
-  color?: string;
 };
 
 export const LANDMARKS: Landmark[] = [
@@ -29,6 +27,5 @@ export const LANDMARKS: Landmark[] = [
     col: village.col,
     row: village.row,
     kind: "area" as const,
-    color: village.color,
   })),
 ];

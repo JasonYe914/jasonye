@@ -1,23 +1,26 @@
+import type { CSSProperties } from "react";
 import type { SceneId } from "./villages";
 
 /*
- * Each village's emblem: an original mark on a rounded square in the
- * village's colour. Drawn on a 64-unit grid.
+ * Each village's emblem: an original mark on a rounded square. The square
+ * is the theme's ink and the mark is the paper (see .emblem in
+ * globals.css), so it is black on white in light mode and flips in dark.
+ * Drawn on a 64-unit grid.
  */
 
 const STROKE = {
   fill: "none",
-  stroke: "#fff",
+  stroke: "currentColor",
   strokeLinecap: "round" as const,
   strokeLinejoin: "round" as const,
 };
 
-function Glyph({ id, color }: { id: SceneId; color: string }) {
+function Glyph({ id }: { id: SceneId }) {
   switch (id) {
     case "queens":
       return (
         <>
-          <g transform="translate(32 32)" fill="#fff">
+          <g transform="translate(32 32)" fill="currentColor">
             {[0, 45, 90, 135, 180, 225, 270, 315].map((angle) => (
               <rect
                 key={angle}
@@ -31,7 +34,7 @@ function Glyph({ id, color }: { id: SceneId; color: string }) {
             ))}
             <circle r="14" />
           </g>
-          <circle cx="32" cy="32" r="5.5" fill={color} />
+          <circle cx="32" cy="32" r="5.5" className="emblem-fill" />
         </>
       );
     case "playtoon":
@@ -41,8 +44,8 @@ function Glyph({ id, color }: { id: SceneId; color: string }) {
             <path d="M32 27c-5-3-11-4-18-3v22c7-1 13 0 18 3 5-3 11-4 18-3V24c-7-1-13 0-18 3z" />
             <path d="M32 27v22" />
           </g>
-          <circle cx="47" cy="15" r="7.5" fill="#fff" />
-          <path d="M43.6 15.2l2.4 2.4 4.4-4.8" {...STROKE} stroke={color} strokeWidth="2.4" />
+          <circle cx="47" cy="15" r="7.5" fill="currentColor" />
+          <path d="M43.6 15.2l2.4 2.4 4.4-4.8" {...STROKE} className="emblem-stroke" strokeWidth="2.4" />
         </>
       );
     case "qadt":
@@ -55,7 +58,7 @@ function Glyph({ id, color }: { id: SceneId; color: string }) {
             <circle cx="19" cy="45" r="7" strokeWidth="2.6" />
             <circle cx="45" cy="45" r="7" strokeWidth="2.6" />
           </g>
-          <rect x="25.5" y="25.5" width="13" height="13" rx="3.5" fill="#fff" />
+          <rect x="25.5" y="25.5" width="13" height="13" rx="3.5" fill="currentColor" />
         </>
       );
     case "getinto":
@@ -66,8 +69,8 @@ function Glyph({ id, color }: { id: SceneId; color: string }) {
             {...STROKE}
             strokeWidth="3.2"
           />
-          <circle cx="32" cy="32" r="8" fill="#fff" />
-          <path d="M28.5 30.5v3M32 28v8M35.5 30.5v3" {...STROKE} stroke={color} strokeWidth="2" />
+          <circle cx="32" cy="32" r="8" fill="currentColor" />
+          <path d="M28.5 30.5v3M32 28v8M35.5 30.5v3" {...STROKE} className="emblem-stroke" strokeWidth="2" />
         </>
       );
     case "wayfinder":
@@ -75,10 +78,10 @@ function Glyph({ id, color }: { id: SceneId; color: string }) {
         <>
           <path d="M16 46L28 32L40 44M28 32L44 25" {...STROKE} strokeWidth="3" />
           <path d="M44 31V11" {...STROKE} strokeWidth="3" />
-          <path d="M44 11h11l-3 4.5 3 4.5H44z" fill="#fff" />
-          <circle cx="16" cy="46" r="5" fill="#fff" />
-          <circle cx="28" cy="32" r="5" fill="#fff" />
-          <circle cx="40" cy="44" r="4.5" fill={color} stroke="#fff" strokeWidth="2.6" />
+          <path d="M44 11h11l-3 4.5 3 4.5H44z" fill="currentColor" />
+          <circle cx="16" cy="46" r="5" fill="currentColor" />
+          <circle cx="28" cy="32" r="5" fill="currentColor" />
+          <circle cx="40" cy="44" r="4.5" className="emblem-fill" stroke="currentColor" strokeWidth="2.6" />
         </>
       );
     case "gofleet":
@@ -89,8 +92,8 @@ function Glyph({ id, color }: { id: SceneId; color: string }) {
             <path d="M36 27h9l6 7v6H36z" />
             <path d="M16.5 30.5l4 4 8-8" />
           </g>
-          <circle cx="18" cy="43.5" r="4.2" fill="#fff" />
-          <circle cx="43" cy="43.5" r="4.2" fill="#fff" />
+          <circle cx="18" cy="43.5" r="4.2" fill="currentColor" />
+          <circle cx="43" cy="43.5" r="4.2" fill="currentColor" />
         </>
       );
     case "zendu":
@@ -101,18 +104,27 @@ function Glyph({ id, color }: { id: SceneId; color: string }) {
             cy="36"
             r="20"
             fill="none"
-            stroke="#fff"
+            stroke="currentColor"
             strokeWidth="2.4"
             strokeDasharray="3.5 4"
             opacity=".75"
           />
-          <circle cx="32" cy="36" r="11" fill="none" stroke="#fff" strokeWidth="2.4" opacity=".9" />
+          <circle cx="32" cy="36" r="11" fill="none" stroke="currentColor" strokeWidth="2.4" opacity=".9" />
           <path
             d="M32 13c5.5 0 9.5 4 9.5 9.2 0 6.8-9.5 16.8-9.5 16.8s-9.5-10-9.5-16.8C22.5 17 26.5 13 32 13z"
-            fill="#fff"
+            fill="currentColor"
           />
-          <circle cx="32" cy="22.5" r="3.4" fill={color} />
+          <circle cx="32" cy="22.5" r="3.4" className="emblem-fill" />
         </>
+      );
+    case "engine":
+      // A V of two cylinders over the crank.
+      return (
+        <g {...STROKE} strokeWidth="3">
+          <path d="M14 20l10 18M50 20 40 38" strokeWidth="9" />
+          <circle cx="32" cy="44" r="6" />
+          <path d="M24 38l8 6 8-6" />
+        </g>
       );
     case "bankview":
       return (
@@ -132,20 +144,25 @@ export default function Emblem({
   className,
 }: {
   id: SceneId;
-  color: string;
+  /** The village's hue: a white mark on a tile of that colour. */
+  color?: string;
   size?: number;
   className?: string;
 }) {
+  const style = color
+    ? ({ "--emblem-tile": color, "--emblem-mark": "#ffffff" } as CSSProperties)
+    : undefined;
   return (
     <svg
       viewBox="0 0 64 64"
       width={size}
       height={size}
-      className={className}
+      className={className ? `emblem ${className}` : "emblem"}
+      style={style}
       aria-hidden="true"
     >
-      <rect width="64" height="64" rx="16" fill={color} />
-      <Glyph id={id} color={color} />
+      <rect className="emblem-tile" width="64" height="64" rx="16" />
+      <Glyph id={id} />
     </svg>
   );
 }

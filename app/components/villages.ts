@@ -1,11 +1,11 @@
 /*
  * The villages: one for each part of the résumé. Each one is a 16 × 16 lot
- * with the project itself on a plaza in the middle and its details standing
- * around it as buildings. Everything a village shows comes from its entry
- * here; anything left out simply isn't built.
+ * kept nearly empty: an image or two floating over it, and its name, a
+ * short line and its dates on the floor. The rest of each entry here is
+ * shown in the village's sheet, not built on the lot.
  */
 
-/** Which centrepiece stands on the plaza. See CENTERPIECES in villageLayout. */
+/** Which village, and which emblem it wears. */
 export type SceneId =
   | "queens"
   | "qadt"
@@ -14,9 +14,10 @@ export type SceneId =
   | "wayfinder"
   | "gofleet"
   | "zendu"
-  | "bankview";
+  | "bankview"
+  | "engine";
 
-/** One headline number, shown as a tower. Size is chosen, not measured. */
+/** One headline number, listed in the sheet. Size marks its importance. */
 export type Metric = {
   value: string;
   label: string;
@@ -25,14 +26,14 @@ export type Metric = {
   detail: string;
 };
 
-/** One technology, shown as a market stall. Core tools stand taller. */
+/** One technology, listed in the sheet. Core tools are marked. */
 export type Tool = { name: string; core?: boolean; detail?: string };
 
-/** A résumé point, cut to a few words and painted on a floor plaque. */
+/** A résumé point, listed in the sheet. */
 export type Point = { label: string; text: string };
 
 /**
- * An image on an upright board. The board takes the image's shape: "dash"
+ * An image, floating flat over the lot. It takes the image's shape: "dash"
  * is a wide screenshot, "portrait" a phone capture, "photo" a 4:3 picture,
  * "form" a smaller dialog. Without `src`, a placeholder is drawn.
  */
@@ -40,6 +41,12 @@ export type Board = {
   caption: string;
   kind: "dash" | "form" | "portrait" | "photo";
   src?: string;
+  /** Width over height of the picture, when it doesn't match its kind. */
+  aspect?: number;
+  /** Keep the picture's own colours rather than greying it like the world. */
+  color?: boolean;
+  /** A short loop played over the picture (see signinDemo.ts). */
+  demo?: "signin";
   alt: string;
   detail: string;
 };
@@ -48,35 +55,43 @@ export type Link = { label: string; href: string };
 
 export type Village = {
   id: SceneId;
-  /** Full name, and the short one used on the map and the gate. */
+  /** Full name, and the short one used on the map and the lot. */
   name: string;
   short: string;
   role: string;
   dates: string;
   place: string;
   kind: "Education" | "Experience" | "Team" | "Project";
-  /** Painted in front of the gate. Keep it under about 26 characters. */
-  gate: string;
-  /** The emblem colour: the name's gradient at the start date. */
+  /**
+   * The village's own hue, soft enough to sit on the white floor: its
+   * floating panels and their shadow, its emblem and its minimap mark.
+   */
   color: string;
-  /** Grid position of the middle of the lot. */
+  /** Grid position of the middle of the lot. Placed by hand, loosely. */
   col: number;
   row: number;
   /** One line, for the card shown on arrival. */
   summary: string;
-  /** Up to three become towers; any more are listed in the sheet only. */
+  /**
+   * A line of your own, painted under the name on the lot. Not from the
+   * résumé: what it was about, in a few words. Keep it under about 32
+   * characters.
+   */
+  tagline: string;
+  /** Headline numbers, listed in the sheet. */
   metrics: Metric[];
-  /** The first five become stalls; the full list shows in the sheet. */
+  /** Technologies, listed in the sheet. */
   tools: Tool[];
-  /** Up to four become plaques. */
+  /** Résumé points, listed in the sheet. */
   points: Point[];
-  /** Up to two become billboards. */
+  /** Images. The first floats large in the middle of the lot; the rest,
+   *  smaller, are layered over its back corner or set beside it. */
   boards: Board[];
-  /** Adds a clock tower when known. */
+  /** Hours spent, shown in the sheet when known. */
   hours?: number;
-  /** Adds one house per person when known; `you` marks yours. */
+  /** Team size, shown in the sheet when known; `you` is your part. */
   team?: { size: number; you: string };
-  /** Adds a signpost when there are any. */
+  /** Links, opened from the sheet. */
   links?: Link[];
 };
 
@@ -92,11 +107,11 @@ export const VILLAGES: Village[] = [
     dates: "Sep 2024 – Present",
     place: "Kingston, ON",
     kind: "Education",
-    gate: "QUEEN'S · 2024 – NOW",
-    color: "#0a63d8",
-    col: -12,
-    row: -22,
+    col: -13,
+    row: -21,
+    color: "#4c7bd9",
     summary: "Mechanical Engineering at Queen's, where it all started.",
+    tagline: "Learning how things are built.",
     metrics: [],
     tools: [],
     points: [
@@ -107,10 +122,31 @@ export const VILLAGES: Village[] = [
     ],
     boards: [
       {
-        caption: "CAD AND BUILDS",
+        caption: "QUEEN'S UNIVERSITY",
+        kind: "dash",
+        src: "/villages/queens/logo.png",
+        aspect: 607 / 225,
+        color: true,
+        alt: "The Queen's University crest and wordmark",
+        detail: "Queen's University, Kingston, Ontario.",
+      },
+      {
+        caption: "CAMPUS",
         kind: "photo",
-        alt: "Placeholder for CAD renders and photos of Mech Eng builds",
-        detail: "Space for CAD renders and photos of Mech Eng builds.",
+        src: "/villages/queens/campus.jpg",
+        aspect: 606 / 363,
+        color: true,
+        alt: "Aerial view of the Queen's campus and Richardson Stadium by Lake Ontario",
+        detail: "The campus on the shore of Lake Ontario.",
+      },
+      {
+        caption: "MITCHELL HALL",
+        kind: "photo",
+        src: "/villages/queens/building.jpg",
+        aspect: 566 / 340,
+        color: true,
+        alt: "A glass-fronted engineering building beside an older limestone hall at dusk",
+        detail: "Engineering at Queen's.",
       },
     ],
   },
@@ -122,11 +158,11 @@ export const VILLAGES: Village[] = [
     dates: "Sep 2025 – May 2026",
     place: "Kingston, ON",
     kind: "Team",
-    gate: "AERO TEAM · 2025 – 26",
-    color: "#5f41e6",
-    col: 10,
-    row: -22,
+    col: -27,
+    row: -8,
+    color: "#2a9d8f",
     summary: "Python drone-control scripts on ROS2 and PX4.",
+    tagline: "Teaching drones to fly themselves.",
     metrics: [],
     tools: [
       { name: "ROS2", core: true },
@@ -147,10 +183,13 @@ export const VILLAGES: Village[] = [
     ],
     boards: [
       {
-        caption: "SIMULATION",
+        caption: "QUEEN'S AEROSPACE",
         kind: "photo",
-        alt: "Placeholder for a photo of the drone or a simulation screenshot",
-        detail: "Space for a photo of the team's drone or a simulation screenshot.",
+        src: "/villages/qadt/logo.png",
+        aspect: 392 / 225,
+        color: true,
+        alt: "The Queen's Aerospace logo: white lettering and a cyan arrow on navy",
+        detail: "Queen's Aerospace Design Team, Kingston, Ontario.",
       },
     ],
   },
@@ -162,11 +201,11 @@ export const VILLAGES: Village[] = [
     dates: "Sep 2025 – Jan 2026",
     place: "Remote",
     kind: "Experience",
-    gate: "PLAYTOON · 2025 – 26",
-    color: "#3552df",
-    col: 10,
-    row: 19,
+    col: 19,
+    row: 2,
+    color: "#8b6cdb",
     summary: "Autosave and publishing APIs for a chapter editor.",
+    tagline: "So no chapter ever gets lost.",
     metrics: [
       {
         value: "5 MIN",
@@ -193,10 +232,13 @@ export const VILLAGES: Village[] = [
     ],
     boards: [
       {
-        caption: "CHAPTER EDITOR",
-        kind: "dash",
-        alt: "Placeholder for a screenshot of the chapter editor",
-        detail: "Space for a screenshot of the chapter editor with its autosave indicator.",
+        caption: "PLAYTOON.IT",
+        kind: "photo",
+        src: "/villages/playtoon/logo.png",
+        aspect: 810 / 746,
+        color: true,
+        alt: "The Playtoon.it logo: white and black lettering on an orange open book",
+        detail: "Playtoon It Inc.",
       },
     ],
   },
@@ -208,11 +250,11 @@ export const VILLAGES: Village[] = [
     dates: "Jan 2026",
     place: "Project",
     kind: "Project",
-    gate: "GET-INTO.TECH · JAN 2026",
-    color: "#8b38ca",
-    col: -34,
-    row: -12,
+    col: -33,
+    row: -1,
+    color: "#e0705a",
     summary: "An AI interview coach that reads speech, eye contact and vocabulary.",
+    tagline: "Practice before the real thing.",
     metrics: [
       {
         value: "3",
@@ -247,10 +289,13 @@ export const VILLAGES: Village[] = [
     ],
     boards: [
       {
-        caption: "FEEDBACK",
-        kind: "portrait",
-        alt: "Placeholder for the feedback screen",
-        detail: "Space for a recording of a feedback session.",
+        caption: "GET-INTO.TECH",
+        kind: "photo",
+        src: "/villages/getinto/icon.png",
+        aspect: 1,
+        color: true,
+        alt: "The Get-Into.Tech app icon: white concentric rings on a purple gradient",
+        detail: "Get-Into.Tech.",
       },
     ],
   },
@@ -262,11 +307,11 @@ export const VILLAGES: Village[] = [
     dates: "Feb 2026",
     place: "Project",
     kind: "Project",
-    gate: "WAYFINDER · FEB 2026",
-    color: "#b8339c",
-    col: -34,
-    row: 10,
+    col: -23,
+    row: 9,
+    color: "#e2a33b",
     summary: "Turns a goal into a roadmap where each step unlocks after its prerequisites.",
+    tagline: "Big goals, one step at a time.",
     metrics: [
       {
         value: "6–12",
@@ -296,8 +341,20 @@ export const VILLAGES: Village[] = [
       {
         caption: "ROADMAP",
         kind: "dash",
-        alt: "Placeholder for a generated roadmap",
-        detail: "Space for a screenshot of a generated roadmap.",
+        src: "/villages/wayfinder/roadmap.png",
+        aspect: 1309 / 455,
+        color: true,
+        alt: "A WayFinder roadmap for a software engineer, branching from Programming Fundamentals, with that step's tasks open beside it",
+        detail: "A generated roadmap, with a step's tasks and proof open beside it.",
+      },
+      {
+        caption: "WAYFINDER",
+        kind: "photo",
+        src: "/villages/wayfinder/logo.png",
+        aspect: 765 / 486,
+        color: true,
+        alt: "The WayFinder logo: a winding road rising to an arrow, inside a circle",
+        detail: "WayFinder.",
       },
     ],
   },
@@ -309,11 +366,11 @@ export const VILLAGES: Village[] = [
     dates: "Jun 2026 – Present",
     place: "Mississauga, ON",
     kind: "Experience",
-    gate: "GOFLEET · JUN 2026 – NOW",
-    color: "#da3970",
-    col: 32,
-    row: -8,
+    col: 16,
+    row: 15,
+    color: "#3f9e5b",
     summary: "A Driver Qualification platform that authorizes drivers by certification.",
+    tagline: "The right drivers on the road.",
     metrics: [
       {
         value: "10/10",
@@ -356,16 +413,13 @@ export const VILLAGES: Village[] = [
     ],
     boards: [
       {
-        caption: "QUALIFICATION DASHBOARD",
+        caption: "GOFLEET",
         kind: "dash",
-        alt: "Placeholder for the qualification dashboard",
-        detail: "Space for a dashboard screenshot. Client work: use mock data, or blur it once approved.",
-      },
-      {
-        caption: "SUPERVISOR OVERRIDE",
-        kind: "form",
-        alt: "Placeholder for the supervisor override dialog",
-        detail: "Space for the supervisor override flow.",
+        src: "/villages/gofleet/banner.png",
+        aspect: 1284 / 594,
+        color: true,
+        alt: "The GoFleet logo over a sketch of a Geotab GO telematics device: powerful plug and play solutions",
+        detail: "GoFleet: powerful plug and play solutions.",
       },
     ],
   },
@@ -377,11 +431,11 @@ export const VILLAGES: Village[] = [
     dates: "Jun 2026 – Present",
     place: "Mississauga, ON",
     kind: "Experience",
-    gate: "ZENDUIT · JUN 2026 – NOW",
-    color: "#e55546",
-    col: 32,
-    row: 14,
+    col: -4,
+    row: 33,
+    color: "#3aa0c9",
     summary: "An indoor patient-tracking proof of concept with live geofences.",
+    tagline: "Knowing where everyone is.",
     metrics: [
       {
         value: "3",
@@ -423,10 +477,13 @@ export const VILLAGES: Village[] = [
     ],
     boards: [
       {
-        caption: "FLOOR PLAN",
-        kind: "dash",
-        alt: "Placeholder for the floor plan dashboard",
-        detail: "Space for a demo on a mock floor plan. Patient-related: never real data.",
+        caption: "ZENDUIT",
+        kind: "photo",
+        src: "/villages/zendu/logo.png",
+        aspect: 946 / 652,
+        color: true,
+        alt: "The ZenduIT wordmark in blue",
+        detail: "ZenduIT.",
       },
     ],
   },
@@ -438,11 +495,11 @@ export const VILLAGES: Village[] = [
     dates: "Sep 2026",
     place: "Project",
     kind: "Project",
-    gate: "BANKVIEW · SEP 2026",
-    color: "#f0701c",
-    col: -12,
-    row: 19,
+    col: -9,
+    row: 21,
+    color: "#5b5fc7",
     summary: "A banking app for managing accounts across banks and sending money.",
+    tagline: "Every account on one screen.",
     metrics: [],
     tools: [
       { name: "Next.js", core: true },
@@ -468,10 +525,56 @@ export const VILLAGES: Village[] = [
     ],
     boards: [
       {
-        caption: "DASHBOARD",
+        caption: "SIGN IN",
         kind: "dash",
-        alt: "Placeholder for the BankView dashboard",
-        detail: "Space for a dashboard screenshot using sandbox accounts only.",
+        src: "/villages/bankview/signin.png",
+        aspect: 1174 / 610,
+        color: true,
+        demo: "signin",
+        alt: "The BankView (Horizon) sign-in screen beside a preview of the dashboard",
+        detail: "Signing in to the dashboard, with sandbox accounts only.",
+      },
+    ],
+  },
+  {
+    id: "engine",
+    name: "V8 Engine Block",
+    short: "V8 ENGINE",
+    role: "CAD model",
+    dates: "Dates TBD",
+    place: "Project",
+    kind: "Project",
+    col: 10,
+    row: -20,
+    color: "#b4545e",
+    summary: "A V8 engine block, crankshaft and pistons, modelled in CAD.",
+    tagline: "Eight cylinders, one crank.",
+    metrics: [],
+    tools: [],
+    points: [],
+    boards: [
+      {
+        // Straightened so the CAD grid runs with the world's floor grid:
+        // lying on the floor, it reads as the engine seen from above.
+        caption: "TOP VIEW",
+        kind: "portrait",
+        src: "/villages/engine/top.png",
+        aspect: 340 / 522,
+        color: true,
+        alt: "Top view of the V8 engine model: two banks of four cylinders either side of the crankshaft",
+        detail: "From above: two banks of four cylinders round the crankshaft.",
+      },
+      {
+        caption: "ISOMETRIC VIEW",
+        kind: "photo",
+        src: "/villages/engine/iso.png",
+        // Pre-slanted, so laid on the floor it stands square to the screen.
+        // Its background grid is redrawn to match the top view's: the same
+        // spacing in tiles, colour and line positions, edge to edge.
+        aspect: 1,
+        color: true,
+        alt: "Isometric view of the V8 engine model, its translucent block showing the pistons and crankshaft inside",
+        detail: "The block made see-through, showing the pistons and crankshaft.",
       },
     ],
   },
