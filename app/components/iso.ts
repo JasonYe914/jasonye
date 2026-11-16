@@ -24,24 +24,6 @@ export function tileCenter(col: number, row: number) {
   return project(col + 0.5, row + 0.5);
 }
 
-/** How far each arm of a floor mark reaches from its grid point, in tiles. */
-const MARK_ARM = 0.12;
-
-/**
- * Adds a small cross to a path, on the grid point at the back corner of the
- * tile whose top face is centred on screen point (x, y). Its arms run along
- * the grid axes.
- */
-export function crossMark(path: CanvasPath, x: number, y: number, scale = 1) {
-  const cornerY = y - HALF_H * scale;
-  const dx = HALF_W * MARK_ARM * scale;
-  const dy = HALF_H * MARK_ARM * scale;
-  path.moveTo(x - dx, cornerY - dy);
-  path.lineTo(x + dx, cornerY + dy);
-  path.moveTo(x - dx, cornerY + dy);
-  path.lineTo(x + dx, cornerY - dy);
-}
-
 /** Axis-aligned box in grid space. */
 export type Box = {
   c0: number;
@@ -84,4 +66,27 @@ export function sortBackToFront<T extends { box: Box }>(items: T[]): T[] {
   }
 
   return sorted;
+}
+
+/**
+ * How many tiles each square ruled on the floor spans, along each side.
+ * Squares start on even tiles. The chicken still steps one tile at a time;
+ * the squares are only what the floor, and anything marking a spot on it,
+ * is drawn in.
+ */
+export const GRID_TILES = 2;
+
+/** Screen position of the middle of the floor square holding tile (col, row). */
+export function squareCenter(col: number, row: number) {
+  const c0 = Math.floor(col / GRID_TILES) * GRID_TILES;
+  const r0 = Math.floor(row / GRID_TILES) * GRID_TILES;
+  return project(c0 + GRID_TILES / 2, r0 + GRID_TILES / 2);
+}
+
+/** Whether two tiles lie in the same floor square. */
+export function sameSquare(c0: number, r0: number, c1: number, r1: number) {
+  return (
+    Math.floor(c0 / GRID_TILES) === Math.floor(c1 / GRID_TILES) &&
+    Math.floor(r0 / GRID_TILES) === Math.floor(r1 / GRID_TILES)
+  );
 }

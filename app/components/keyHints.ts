@@ -1,4 +1,4 @@
-import { HALF_H, HALF_W, type Direction } from "./iso";
+import { GRID_TILES, HALF_H, HALF_W, type Direction } from "./iso";
 
 /**
  * Fired on `window` by the intro once the chicken has landed, so the home
@@ -19,6 +19,12 @@ export const HINT_FADE_IN_MS = 420;
 export const HINT_STAGGER_MS = 90;
 /** How long the hints take to fade out once the chicken moves. */
 export const HINT_FADE_OUT_MS = 260;
+/**
+ * How big the hints are drawn, in tiles. Each sits in the middle of the
+ * floor square next to the chicken's own square, so it is sized to fit
+ * one square with a little room round it.
+ */
+const HINT_SIZE = GRID_TILES * 0.85;
 /** How long one bob of the arrows takes. */
 const BOB_MS = 1400;
 
@@ -71,9 +77,15 @@ export function drawKeyHints(
     // From here on one unit is one tile and the axes are the grid's own, so
     // the hint lies flat on the floor like the name does.
     ctx.transform(HALF_W, HALF_H, -HALF_W, HALF_H, 0, 0);
-    ctx.translate(col + dc + 0.5, row + dr + 0.5);
+    // The middle of the floor square next to the chicken's, that way.
+    const c0 = Math.floor(col / GRID_TILES) * GRID_TILES;
+    const r0 = Math.floor(row / GRID_TILES) * GRID_TILES;
+    ctx.translate(
+      c0 + GRID_TILES / 2 + dc * GRID_TILES,
+      r0 + GRID_TILES / 2 + dr * GRID_TILES,
+    );
     // It settles into place as it fades in.
-    const grow = 0.85 + 0.15 * shown;
+    const grow = (0.85 + 0.15 * shown) * HINT_SIZE;
     ctx.scale(grow, grow);
 
     // The keycap, set back a little from the arrow.

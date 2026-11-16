@@ -6,10 +6,18 @@ import {
   type PointerEvent,
   type ReactNode,
 } from "react";
-import Emblem from "./Emblem";
+import AboutPanel from "./AboutPanel";
+import ContactPanel from "./ContactPanel";
+import ProjectGallery from "./ProjectGallery";
+import SettingsMenu from "./SettingsMenu";
 import { ThemeIcon, useThemeToggle } from "./ThemeToggle";
-import { VILLAGES } from "./villages";
-import { travelTo } from "./villageStore";
+import {
+  GALLERY_CLOSED_EVENT,
+  forgetGalleryRequest,
+  projectsInUrl,
+  travelTo,
+  villageStore,
+} from "./villageStore";
 
 /**
  * Placeholder destinations. Swap the labels and icons once the pages
@@ -74,7 +82,8 @@ const MAX_GROWTH = 0.3;
 /** How quickly the effect falls off, in icon spacings: ~40% one away. */
 const SPREAD = 0.75;
 
-const ITEM_COUNT = PAGES.length + 1;
+/** The pages, then the theme switch and the settings. */
+const ITEM_COUNT = PAGES.length + 2;
 
 /** Where each icon's middle sits at rest, from the middle of the bar. */
 const REST = (() => {
@@ -114,23 +123,79 @@ function subscribeToNothing() {
  */
 export default function NavBar() {
   const [active, setActive] = useState("home");
-  /** Whether the list of villages to travel to is open. */
-  const [travelOpen, setTravelOpen] = useState(false);
+  /**
+   * Whether the gallery of projects is open over the world. A project's
+   * page links back to /?projects, which opens it; after that, the dock's
+   * button decides.
+   */
+  const fromUrl = useSyncExternalStore(
+    subscribeToNothing,
+    projectsInUrl,
+    () => false,
+  );
+  const [chosen, setChosen] = useState<boolean | null>(null);
+  const galleryOpen = chosen ?? fromUrl;
+  /** Whether the settings panel is open beside the dock. */
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  /** Whether the contact card is open over the world. */
+  const [contactOpen, setContactOpen] = useState(false);
+  /** Whether the about page is open over the world. */
+  const [aboutOpen, setAboutOpen] = useState(false);
+  /**
+   * Whether the full page showing (gallery or about) took the place of the
+   * other one. It then appears at once instead of fading in, since a fade
+   * would show the world through it for a moment between the two.
+   */
+  const [swapped, setSwapped] = useState(false);
 
   function choose(id: string) {
+    setSettingsOpen(false);
     if (id === "projects") {
-      setTravelOpen((open) => !open);
+      setContactOpen(false);
+      setSwapped(aboutOpen);
+      setAboutOpen(false);
+      if (galleryOpen) closeGallery();
+      else setChosen(true);
       return;
     }
-    setTravelOpen(false);
+    // Contact is a small window over whatever is showing, so it leaves the
+    // gallery or the about page open underneath it.
+    if (id === "contact") {
+      setContactOpen((open) => !open);
+      return;
+    }
+    setSwapped(id === "about" && galleryOpen);
+    // About opens over the world but isn't going to it: no intro for that.
+    closeGallery(id !== "about");
+    setContactOpen(false);
+    if (id === "about") {
+      setAboutOpen((open) => !open);
+      return;
+    }
+    setAboutOpen(false);
     setActive(id);
     if (id === "home") travelTo("home");
   }
 
-  function go(id: string) {
-    setTravelOpen(false);
-    setActive("projects");
-    travelTo(id);
+  /** `toWorld`: whether closing it shows the world, rather than another panel. */
+  function closeGallery(toWorld = true) {
+    setChosen(false);
+    villageStore.closeSheet();
+    // Drop ?projects, so a reload doesn't open the gallery again.
+    if (projectsInUrl())
+      history.replaceState(
+        history.state,
+        "",
+        location.pathname + location.hash,
+      );
+    forgetGalleryRequest();
+    // After the address loses ?projects, so a held intro sees it gone.
+    if (galleryOpen)
+      window.dispatchEvent(
+        new CustomEvent<{ toWorld: boolean }>(GALLERY_CLOSED_EVENT, {
+          detail: { toWorld },
+        }),
+      );
   }
   /** Pointer height from the middle of the bar, while it is over it. */
   const [pointer, setPointer] = useState<number | null>(null);
@@ -161,90 +226,144 @@ export default function NavBar() {
   const sizeOf = (index: number) => SIZE * (1 + growthAt(index, pointer));
 
   return (
-    <nav
-      aria-label="Main"
-      data-palette={palette}
-      onPointerMove={track}
-      onPointerLeave={() => setPointer(null)}
-      className="nav-bar fixed top-1/2 left-4 z-40 flex -translate-y-1/2 flex-col items-start rounded-full"
-      style={{ padding: PAD, gap: GAP, width: SIZE + 2 * PAD }}
-    >
-      {PAGES.map((page, index) => {
-        const current = page.id === active;
-        const size = sizeOf(index);
-        return (
-          <button
-            key={page.id}
-            type="button"
-            onClick={() => choose(page.id)}
-            aria-label={page.label}
-            aria-current={current ? "page" : undefined}
-            aria-expanded={page.id === "projects" ? travelOpen : undefined}
-            aria-controls={page.id === "projects" ? "travel-menu" : undefined}
-            className="nav-item relative grid shrink-0 place-items-center rounded-full"
-            style={{ width: size, height: size }}
-            {...focusProps(index)}
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              {page.icon}
-            </svg>
-            <span className="nav-tip">{page.label}</span>
-          </button>
-        );
-      })}
-
-      <button
-        type="button"
-        onClick={toggle}
-        aria-label="Dark mode"
-        aria-pressed={theme === null ? undefined : theme === "dark"}
-        className="nav-item relative grid shrink-0 place-items-center rounded-full"
-        style={{
-          width: sizeOf(PAGES.length),
-          height: sizeOf(PAGES.length),
-        }}
-        {...focusProps(PAGES.length)}
+    <>
+      <nav
+        aria-label="Main"
+        data-palette={palette}
+        onPointerMove={track}
+        onPointerLeave={() => setPointer(null)}
+        className="nav-bar fixed top-1/2 left-4 z-40 flex -translate-y-1/2 flex-col items-start rounded-full"
+        style={{ padding: PAD, gap: GAP, width: SIZE + 2 * PAD }}
       >
-        <ThemeIcon />
-        <span className="nav-tip">
-          {theme === "dark" ? "Light mode" : "Dark mode"}
-        </span>
-      </button>
+        {PAGES.map((page, index) => {
+          const current =
+            page.id ===
+            (contactOpen
+              ? "contact"
+              : galleryOpen
+                ? "projects"
+                : aboutOpen
+                  ? "about"
+                  : active);
+          const size = sizeOf(index);
+          return (
+            <button
+              key={page.id}
+              type="button"
+              onClick={() => choose(page.id)}
+              aria-label={page.label}
+              aria-current={current ? "page" : undefined}
+              aria-expanded={
+                page.id === "projects"
+                  ? galleryOpen
+                  : page.id === "contact"
+                    ? contactOpen
+                    : page.id === "about"
+                      ? aboutOpen
+                      : undefined
+              }
+              aria-controls={
+                page.id === "projects"
+                  ? "project-gallery"
+                  : page.id === "contact"
+                    ? "contact-panel"
+                    : page.id === "about"
+                      ? "about-panel"
+                      : undefined
+              }
+              className="nav-item relative grid shrink-0 place-items-center rounded-full"
+              style={{ width: size, height: size }}
+              {...focusProps(index)}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                {page.icon}
+              </svg>
+              <span className="nav-tip">{page.label}</span>
+            </button>
+          );
+        })}
 
-      {travelOpen && (
-        <div
-          id="travel-menu"
-          className="travel-menu chrome"
-          // The dock magnifies with the pointer; the list shouldn't.
-          onPointerMove={(event) => event.stopPropagation()}
-          onKeyDown={(event) => {
-            if (event.key === "Escape") setTravelOpen(false);
+        <button
+          type="button"
+          onClick={toggle}
+          aria-label="Dark mode"
+          aria-pressed={theme === null ? undefined : theme === "dark"}
+          className="nav-item relative grid shrink-0 place-items-center rounded-full"
+          style={{
+            width: sizeOf(PAGES.length),
+            height: sizeOf(PAGES.length),
           }}
+          {...focusProps(PAGES.length)}
         >
-          <p className="travel-menu-title">Travel to</p>
-          <ul>
-            {VILLAGES.map((village) => (
-              <li key={village.id}>
-                <button type="button" onClick={() => go(village.id)}>
-                  <Emblem id={village.id} color={village.color} size={28} />
-                  <span>
-                    <span className="travel-name">{village.name}</span>
-                    <span className="travel-meta">{village.dates}</span>
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
+          <ThemeIcon />
+          <span className="nav-tip">
+            {theme === "dark" ? "Light mode" : "Dark mode"}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setSettingsOpen((open) => !open)}
+          aria-label="Settings"
+          aria-expanded={settingsOpen}
+          aria-controls="settings-menu"
+          className="nav-item relative grid shrink-0 place-items-center rounded-full"
+          data-open={settingsOpen ? "" : undefined}
+          style={{
+            width: sizeOf(PAGES.length + 1),
+            height: sizeOf(PAGES.length + 1),
+          }}
+          {...focusProps(PAGES.length + 1)}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M4 7h9M17 7h3M4 17h3M11 17h9" />
+            <circle cx="15" cy="7" r="2" />
+            <circle cx="9" cy="17" r="2" />
+          </svg>
+          <span className="nav-tip">Settings</span>
+        </button>
+
+        {settingsOpen && (
+          <SettingsMenu
+            onClose={() => setSettingsOpen(false)}
+            onHome={() => {
+              closeGallery();
+              setContactOpen(false);
+              setAboutOpen(false);
+              setActive("home");
+              travelTo("home");
+            }}
+          />
+        )}
+      </nav>
+      {galleryOpen && (
+        // Opened by the address (back from a project's page), or in place
+        // of the about page, it is there at once rather than fading in.
+        <ProjectGallery
+          onClose={closeGallery}
+          instant={chosen === null || swapped}
+        />
       )}
-    </nav>
+      {aboutOpen && (
+        <AboutPanel onClose={() => setAboutOpen(false)} instant={swapped} />
+      )}
+      {contactOpen && <ContactPanel onClose={() => setContactOpen(false)} />}
+    </>
   );
 }

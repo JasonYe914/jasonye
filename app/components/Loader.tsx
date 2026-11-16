@@ -1,9 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { drawChicken } from "./chicken";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { CHICKEN_SCALE, drawChicken } from "./chicken";
+import { INTRO_SKIPPED_EVENT, intro } from "./introState";
 import { INTRO_LANDED_EVENT } from "./keyHints";
-import { HALF_H, HALF_W, TILE_SIDE, tileCenter, type Direction } from "./iso";
+import { GALLERY_CLOSED_EVENT, projectsInUrl } from "./villageStore";
+import {
+  GRID_TILES,
+  HALF_H,
+  HALF_W,
+  TILE_SIDE,
+  squareCenter,
+  tileCenter,
+  type Direction,
+} from "./iso";
 import { HOME, NAME_TILES, drawName, fitZoom } from "./name";
 import { readPalette, watchTheme, type Palette } from "./theme";
 
@@ -64,8 +74,8 @@ const CHICKEN_HOP_PX = 12;
 const CHICKEN_SPOT = tileCenter(0, 0);
 const CHICKEN_FACING: Direction = [0, 1];
 /** Size of the chicken's shadow on the ground, as drawn by drawChicken. */
-const SHADOW_RX = TILE_SIDE * 0.24 * 1.45;
-const SHADOW_RY = TILE_SIDE * 0.14 * 1.45;
+const SHADOW_RX = TILE_SIDE * 0.24 * CHICKEN_SCALE;
+const SHADOW_RY = TILE_SIDE * 0.14 * CHICKEN_SCALE;
 /** Pixels per tile when working out which tiles the name is painted on. */
 const PROBE_PX = 8;
 /** How long the overlay takes to fade once the floor is down. */
@@ -124,9 +134,7 @@ const BLOCK_PAD = 1;
  */
 function buildBlock(tile: Tile, colors: Palette, scale: number) {
   const width = Math.ceil((2 * HALF_W + 2 * BLOCK_PAD) * scale);
-  const height = Math.ceil(
-    (2 * HALF_H + BLOCK_DEPTH + 2 * BLOCK_PAD) * scale,
-  );
+  const height = Math.ceil((2 * HALF_H + BLOCK_DEPTH + 2 * BLOCK_PAD) * scale);
   const face = document.createElement("canvas");
   const block = document.createElement("canvas");
   face.width = block.width = width;
@@ -204,6 +212,26 @@ function diamond(path: CanvasPath, x: number, y: number, scale = 1) {
 }
 
 /**
+ * Adds the outline of the floor square a tile starts, if it starts one:
+ * squares are GRID_TILES tiles a side and begin on even tiles.
+ */
+function gridSquare(path: CanvasPath, tile: Tile) {
+  const u = Math.round(tile.x / HALF_W);
+  const v = Math.round(tile.y / HALF_H) - 1;
+  const col = (u + v) / 2;
+  const row = (v - u) / 2;
+  if (col % GRID_TILES !== 0 || row % GRID_TILES !== 0) return;
+  const n = GRID_TILES;
+  const x = tile.x;
+  const y = tile.y - HALF_H;
+  path.moveTo(x, y);
+  path.lineTo(x + n * HALF_W, y + n * HALF_H);
+  path.lineTo(x, y + 2 * n * HALF_H);
+  path.lineTo(x - n * HALF_W, y + n * HALF_H);
+  path.closePath();
+}
+
+/**
  * Adds the two front sides of a block standing proud of the floor: from its
  * top face at `top` down to where the floor meets it at `bottom`.
  */
@@ -250,9 +278,9 @@ function findNameCells() {
   ctx.transform(0.5 / HALF_W, -0.5 / HALF_W, 0.5 / HALF_H, 0.5 / HALF_H, 0, 0);
   drawName(ctx, {
     ink: ["#000"],
-    orange: "#000",
-    blue: "#000",
-    sky: "#000",
+    strong: "#000",
+    mid: "#000",
+    soft: "#000",
   });
 
   const { data } = ctx.getImageData(0, 0, probe.width, probe.height);
@@ -356,8 +384,7 @@ function layFloor(
   const nameWidth = Math.max(...xs) - nameLeft || 1;
   let nameMs = floorMs;
   for (const { x, y } of nameSpots) {
-    const drop =
-      y - windowTop + between(0, NAME_HEADROOM_TILES) * 2 * HALF_H;
+    const drop = y - windowTop + between(0, NAME_HEADROOM_TILES) * 2 * HALF_H;
     const along = (x - nameLeft) / nameWidth;
     const release =
       floorMs +
@@ -461,6 +488,7 @@ function startLoader(canvas: HTMLCanvasElement, onLanded: () => void) {
     const flushSides = new Path2D();
     const flushTops = new Path2D();
     const flushName = new Path2D();
+    const flushGrid = new Path2D();
     const moving: Tile[] = [];
     for (const tile of tiles) {
       if (elapsed <= tile.appear) continue;
@@ -479,6 +507,7 @@ function startLoader(canvas: HTMLCanvasElement, onLanded: () => void) {
         if (tile.y < top || tile.y > bottom) continue;
         diamond(flushSides, tile.x, tile.y + LIP);
         diamond(flushTops, tile.x, tile.y);
+        gridSquare(flushGrid, tile);
       } else {
         moving.push(tile);
       }
@@ -488,7 +517,9 @@ function startLoader(canvas: HTMLCanvasElement, onLanded: () => void) {
     ctx.fill(flushSides);
     ctx.fillStyle = colors.top;
     ctx.fill(flushTops);
-    ctx.stroke(flushTops);
+    // Settled floor is ruled in the world's bigger squares, so nothing
+    // changes when the intro hands over.
+    ctx.stroke(flushGrid);
     // The name, in one piece, as World paints it.
     ctx.save();
     ctx.clip(flushName);
@@ -602,11 +633,12 @@ function startLoader(canvas: HTMLCanvasElement, onLanded: () => void) {
         CHICKEN_HOP_PX * Math.sin(Math.PI * hopped);
       const { x, y } = CHICKEN_SPOT;
 
-      // Its tile is shaded as it comes in to land, as World shades it.
+      // Its floor square is shaded as it comes in to land, as World shades it.
       const arriving = clamp01((fell - 0.6) / 0.4);
       ctx.globalAlpha = arriving;
       ctx.beginPath();
-      diamond(ctx, x, y);
+      const square = squareCenter(0, 0);
+      diamond(ctx, square.x, square.y, GRID_TILES);
       ctx.fillStyle = colors.here;
       ctx.fill();
       ctx.lineWidth = 1.25 / zoom;
@@ -681,6 +713,11 @@ function startLoader(canvas: HTMLCanvasElement, onLanded: () => void) {
   };
 }
 
+function onGalleryClosed(callback: () => void) {
+  window.addEventListener(GALLERY_CLOSED_EVENT, callback);
+  return () => window.removeEventListener(GALLERY_CLOSED_EVENT, callback);
+}
+
 /**
  * Intro shown over the home page while it loads. The floor it lays is the
  * same one World draws underneath, so when this overlay fades out the
@@ -688,17 +725,48 @@ function startLoader(canvas: HTMLCanvasElement, onLanded: () => void) {
  */
 export default function Loader() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [phase, setPhase] = useState<"playing" | "reveal" | "done">("playing");
+  // Once a page load: coming back to the world from elsewhere on the site
+  // (a project page, say) finds it already there.
+  const [phase, setPhase] = useState<"playing" | "reveal" | "done">(() =>
+    intro.played() ? "done" : "playing",
+  );
+
+  // Coming back to the projects gallery (from a project's page) isn't
+  // coming into the world: the intro waits until the gallery closes.
+  const onGallery = useSyncExternalStore(
+    onGalleryClosed,
+    projectsInUrl,
+    () => false,
+  );
+
+  // Leaving the gallery for another panel (About) isn't going to the world:
+  // pass the intro over altogether, and let the world settle as it is.
+  useEffect(() => {
+    const onClosed = (event: Event) => {
+      const toWorld = (event as CustomEvent<{ toWorld?: boolean }>).detail?.toWorld ?? true;
+      if (toWorld || intro.played()) return;
+      intro.markPlayed();
+      setPhase("done");
+      window.dispatchEvent(new Event(INTRO_SKIPPED_EVENT));
+    };
+    window.addEventListener(GALLERY_CLOSED_EVENT, onClosed);
+    return () => window.removeEventListener(GALLERY_CLOSED_EVENT, onClosed);
+  }, []);
 
   useEffect(() => {
+    // Read again here: while hydrating, `onGallery` is still the server's.
+    if (onGallery || projectsInUrl() || intro.played()) return;
     if (canvasRef.current) {
       return startLoader(canvasRef.current, () => {
+        // Played once landed (not on starting, which development mode's
+        // double mount would otherwise cut short).
+        intro.markPlayed();
         setPhase("reveal");
         // Tells the home page to show the movement keys.
         window.dispatchEvent(new Event(INTRO_LANDED_EVENT));
       });
     }
-  }, []);
+  }, [onGallery]);
 
   // Keep the chicken still under the overlay: if it walked off, the view
   // would pan and the floor would no longer line up with the blocks here.
@@ -713,7 +781,7 @@ export default function Loader() {
       window.removeEventListener("keydown", swallowMovement, { capture: true });
   }, [phase]);
 
-  if (phase === "done") return null;
+  if (phase === "done" || onGallery) return null;
 
   return (
     <div

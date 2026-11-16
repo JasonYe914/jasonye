@@ -56,9 +56,51 @@ export const villageStore = {
   },
 };
 
+/**
+ * Fired on `window` when the projects gallery closes onto the world. A
+ * visit that opened on the gallery (a project page's back link) holds the
+ * intro until then, so it plays only on the way into the world.
+ */
+export const GALLERY_CLOSED_EVENT = "world:gallery-closed";
+
+/**
+ * Set by a project page's back link as it is clicked. In a client-side
+ * navigation the home page renders before the address changes to
+ * /?projects, so without this its first frame would show the world, not
+ * the gallery. Dropped once the address itself says so, or the gallery
+ * closes.
+ */
+let galleryRequested = false;
+
+export function requestGallery() {
+  galleryRequested = true;
+}
+
+export function forgetGalleryRequest() {
+  galleryRequested = false;
+}
+
+/** Whether the address asks for the projects gallery, as /?projects does,
+ *  or a back link has just asked for it on the way there. */
+export function projectsInUrl() {
+  const inUrl = new URLSearchParams(location.search).has("projects");
+  if (inUrl) galleryRequested = false;
+  return inUrl || galleryRequested;
+}
+
 /** Fired on `window` to send the chicken to a village, or "home". */
 export const TRAVEL_EVENT = "world:travel";
 
 export function travelTo(id: string) {
   window.dispatchEvent(new CustomEvent<string>(TRAVEL_EVENT, { detail: id }));
+}
+
+/**
+ * Fired on `window` to zoom the world view: a factor (above 1 zooms in),
+ * or 0 to go back to the settled zoom.
+ */
+export const ZOOM_EVENT = "world:zoom";
+
+export function zoomWorld(factor: number) {
+  window.dispatchEvent(new CustomEvent<number>(ZOOM_EVENT, { detail: factor }));
 }

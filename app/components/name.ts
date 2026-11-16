@@ -141,12 +141,30 @@ export function fitZoom(width: number, height: number) {
   return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, fit));
 }
 
+/*
+ * Room for the home view once the intro is over: wide enough to take in
+ * the villages round the name, so a first-time visitor sees there is
+ * somewhere to go. Every village shows at least in part at this zoom.
+ */
+// Widened a touch (OVERVIEW_ROOM) so every landmark, spaced out, is still
+// fully in view at the start, clear of the dock and the minimap.
+const OVERVIEW_ROOM = 1 / 0.91;
+const OVERVIEW_WIDTH = (right - left) * 3.05 * OVERVIEW_ROOM;
+const OVERVIEW_HEIGHT = (bottom - top) * 3.4 * OVERVIEW_ROOM;
+
+/** Scale at which the name and the villages round it fit the window. */
+export function overviewZoom(width: number, height: number) {
+  const fit = Math.min(width / OVERVIEW_WIDTH, height / OVERVIEW_HEIGHT);
+  return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, fit));
+}
+
 export type NameColors = {
-  /** Gradient stops, evenly spaced from the first letter to the last. */
+  /** Gradient stops, evenly spaced from the first letter to the last.
+   *  One stop paints the letters solid. */
   ink: readonly string[];
-  orange: string;
-  blue: string;
-  sky: string;
+  strong: string;
+  mid: string;
+  soft: string;
 };
 
 /** The letters' own extent in grid space, which the gradient spans. */
@@ -164,21 +182,21 @@ export const NAME_CENTER = {
 };
 
 /**
- * Coloured floor tiles scattered through the gaps between the letters, as
+ * Grey floor tiles scattered through the gaps between the letters, as
  * [col, row] from the name's top-left corner.
  */
 const ACCENTS: {
-  color: "orange" | "blue" | "sky";
+  color: "strong" | "mid" | "soft";
   at: [number, number];
 }[] = [
-  { color: "blue", at: [3, 3] },
-  { color: "orange", at: [3, 4] },
-  { color: "orange", at: [4, 4] },
-  { color: "blue", at: [8, 4] },
-  { color: "sky", at: [7, 5] },
-  { color: "orange", at: [11, 2] },
-  { color: "sky", at: [12, 4] },
-  { color: "sky", at: [15, 1] },
+  { color: "strong", at: [3, 3] },
+  { color: "mid", at: [3, 4] },
+  { color: "mid", at: [4, 4] },
+  { color: "strong", at: [8, 4] },
+  { color: "soft", at: [7, 5] },
+  { color: "mid", at: [11, 2] },
+  { color: "soft", at: [12, 4] },
+  { color: "soft", at: [15, 1] },
 ];
 
 /** Built on first use: Path2D only exists in the browser. */
@@ -232,10 +250,15 @@ export function drawNameFlat(
   shapes ??= buildShapes();
   ctx.save();
 
+  // The tiles between the letters take the name's own colours: its first
+  // hue, its last, and a faint wash of the second.
+  const tint = { strong: colors.ink[0], mid: colors.ink.at(-1), soft: colors.ink[1] ?? colors.ink[0] };
   for (const { color, at } of ACCENTS) {
-    ctx.fillStyle = colors[color];
+    ctx.globalAlpha = color === "soft" ? 0.35 : 1;
+    ctx.fillStyle = tint[color] ?? colors[color];
     ctx.fillRect(ORIGIN.col + at[0], ORIGIN.row + at[1], 1, 1);
   }
+  ctx.globalAlpha = 1;
 
   // The gradient lies on the floor with the letters and runs the way they
   // read, from J to N, like the gradient headlines on Apple's pages. The
