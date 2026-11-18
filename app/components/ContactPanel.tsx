@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { EMAIL, EMAIL_HREF, GITHUB, LINKEDIN } from "./contact";
 
 /*
  * Contact: one small card floating over the world, opened from the dock.
@@ -25,8 +26,8 @@ const CONTACTS: Contact[] = [
   {
     id: "email",
     label: "Email",
-    value: "jason.ye914@gmail.com",
-    href: "mailto:jason.ye914@gmail.com",
+    value: EMAIL,
+    href: EMAIL_HREF,
     hue: 1,
     copy: true,
     icon: (
@@ -40,7 +41,7 @@ const CONTACTS: Contact[] = [
     id: "linkedin",
     label: "LinkedIn",
     value: "linkedin.com/in/jasonyequeens",
-    href: "https://www.linkedin.com/in/jasonyequeens/",
+    href: LINKEDIN,
     hue: 2,
     icon: (
       <>
@@ -53,7 +54,7 @@ const CONTACTS: Contact[] = [
     id: "github",
     label: "GitHub",
     value: "github.com/JasonYe914",
-    href: "https://github.com/JasonYe914",
+    href: GITHUB,
     hue: 3,
     icon: (
       <path d="M9 19c-4 1.3-4-2-6-2.5m12 4.5v-3.4a3 3 0 0 0-.8-2.3c2.7-.3 5.6-1.3 5.6-6a4.6 4.6 0 0 0-1.3-3.2 4.3 4.3 0 0 0-.1-3.2s-1-.3-3.4 1.3a11.6 11.6 0 0 0-6 0C6.6 2.6 5.6 2.9 5.6 2.9a4.3 4.3 0 0 0-.1 3.2A4.6 4.6 0 0 0 4.2 9.3c0 4.6 2.9 5.7 5.6 6a3 3 0 0 0-.8 2.3V21" />

@@ -17,7 +17,8 @@ const CROP = { x: 180, y: 150 };
 /** One full loop, in ms. */
 const LOOP_MS = 7600;
 
-const EMAIL = "fakeemail123@gmail.com";
+// A reserved example.com address, so the demo never shows a real inbox.
+const EMAIL = "demo.user@example.com";
 const PASSWORD_LENGTH = 15;
 
 // Where the form's parts are in the screenshot, measured from it.

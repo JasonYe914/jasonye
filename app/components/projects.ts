@@ -7,6 +7,7 @@ import {
   type Tool,
   type Village,
 } from "./villages";
+import { GITHUB } from "./contact";
 
 /*
  * Everything in the Projects gallery, in the order it is shown. Each
@@ -37,6 +38,8 @@ export type Project = {
   media: { kind: MediaKind; aspect: number; board?: number };
   /** Whether it has a village in the world to visit. */
   village: boolean;
+  /** Shown large across the top of the gallery, ahead of the rest. */
+  featured?: boolean;
 };
 
 const VILLAGE_MEDIA: Record<Village["id"], Project["media"]> = {
@@ -62,7 +65,6 @@ function fromVillage(village: Village): Project {
   };
 }
 
-const GITHUB = "https://github.com/JasonYe914";
 
 /**
  * A repo of one's own: no collaborators. These are placeholders, with
@@ -79,18 +81,11 @@ type Repo = {
   media: Project["media"];
   /** A picture for the card and the project's page, until a real one exists. */
   image?: { src: string; alt: string };
+  /** Shown large across the top of the gallery. */
+  featured?: boolean;
 };
 
 const REPOS: Repo[] = [
-  {
-    id: "sysmon",
-    name: "SysMon",
-    repo: "SysMon-Taskbar-System-Monitor-C-Win32-",
-    dates: "Jul 2026",
-    summary: "A small always-on-top bar beside the Windows taskbar with live CPU, GPU, RAM and disk use.",
-    tools: ["C++", "Win32"],
-    media: { kind: "form", aspect: 16 / 7 },
-  },
   {
     id: "java-neural-network",
     name: "Neural Network in Java",
@@ -101,7 +96,7 @@ const REPOS: Repo[] = [
     media: { kind: "photo", aspect: 4 / 3 },
     image: {
       src: "/projects/nn-java.svg",
-      alt: "A neural network diagram, layers of nodes joined by weighted connections, with a Java badge",
+      alt: "A neural network diagram, layers of nodes joined by weighted connections",
     },
   },
   {
@@ -114,7 +109,7 @@ const REPOS: Repo[] = [
     media: { kind: "photo", aspect: 1 },
     image: {
       src: "/projects/nn-python.svg",
-      alt: "A neural network diagram ending in two outputs, 0 and 1, with a Python badge",
+      alt: "A neural network diagram ending in two outputs, 0 and 1",
     },
   },
   {
@@ -124,7 +119,50 @@ const REPOS: Repo[] = [
     dates: "Dec 2025",
     summary: "A graphing calculator in the browser, after Desmos.",
     tools: ["React", "JavaScript"],
-    media: { kind: "dash", aspect: 16 / 10 },
+    media: { kind: "dash", aspect: 1565 / 948 },
+    image: {
+      src: "/projects/desmos.webp",
+      alt: "The Visualize home page: a graph of waves beside the 2D and 3D graph buttons, with Four Function, 3D, Graphing and Geometry tools below",
+    },
+  },
+  {
+    id: "flappy-bird",
+    name: "Flappy Bird",
+    repo: "FlappyBirdGame",
+    dates: "Sep 2025",
+    summary: "Flappy Bird played by a population of birds that learns to fly over generations, with a genetic algorithm.",
+    tools: ["Java"],
+    media: { kind: "photo", aspect: 4 / 3 },
+    image: {
+      src: "/projects/flappy-bird-ga.webp",
+      alt: "Generation 6 of the Happy Bird simulation: a population of birds nearing a pipe gap, most eliminated, three pipes ahead, with the generation's best score in the corner",
+    },
+  },
+  {
+    id: "valorant-team-select",
+    name: "Valorant Team Select",
+    repo: "ValorantTeamSelect",
+    dates: "Sep 2025",
+    summary: "Pick a “perfect” Valorant team from a database of players, after FIFA's team selection.",
+    tools: ["React", "Java"],
+    media: { kind: "dash", aspect: 1600 / 768 },
+    image: {
+      src: "/projects/valorant-team-select.jpg",
+      alt: "The site's home page: VCT Champions 2025 in large gold lettering on black, under a gold-trimmed bar with Home, Search, Player Stats and Team Selection",
+    },
+  },
+  {
+    id: "solitaire",
+    name: "Solitaire",
+    repo: "Solitaire",
+    dates: "Sep 2025",
+    summary: "Solitaire, written in Java.",
+    tools: ["Java"],
+    media: { kind: "photo", aspect: 3 / 2 },
+    image: {
+      src: "/projects/solitaire.jpg",
+      alt: "A game of Klondike solitaire in progress on green felt: the stock, the waste, four foundations and seven tableau columns",
+    },
   },
   {
     id: "maze-solver",
@@ -134,42 +172,10 @@ const REPOS: Repo[] = [
     summary: "A maze solver, written in Java.",
     tools: ["Java"],
     media: { kind: "photo", aspect: 1 },
-  },
-  {
-    id: "valorant-team-select",
-    name: "Valorant Team Select",
-    repo: "ValorantTeamSelect",
-    dates: "Sep 2025",
-    summary: "Pick a “perfect” Valorant team from a database of players, after FIFA's team selection.",
-    tools: ["React", "Java"],
-    media: { kind: "dash", aspect: 3 / 2 },
-  },
-  {
-    id: "list-of-movies",
-    name: "List of Movies",
-    repo: "list-of-movies",
-    dates: "Sep 2025",
-    summary: "A list of movies, built in React.",
-    tools: ["React", "CSS"],
-    media: { kind: "dash", aspect: 16 / 10 },
-  },
-  {
-    id: "solitaire",
-    name: "Solitaire",
-    repo: "Solitaire",
-    dates: "Sep 2025",
-    summary: "Solitaire, written in Java.",
-    tools: ["Java"],
-    media: { kind: "photo", aspect: 4 / 3 },
-  },
-  {
-    id: "flappy-bird",
-    name: "Flappy Bird",
-    repo: "FlappyBirdGame",
-    dates: "Sep 2025",
-    summary: "An automated Flappy Bird game.",
-    tools: ["Java"],
-    media: { kind: "photo", aspect: 3 / 4 },
+    image: {
+      src: "/projects/maze.svg",
+      alt: "A square maze with a yellow line tracing the solved path from the entrance at the top left to the exit at the bottom right",
+    },
   },
 ];
 
@@ -191,6 +197,7 @@ function fromRepo(repo: Repo): Project {
       : [],
     media: repo.media,
     village: false,
+    featured: repo.featured,
   };
 }
 

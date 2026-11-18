@@ -58,6 +58,8 @@ export type Village = {
   /** Full name, and the short one used on the map and the lot. */
   name: string;
   short: string;
+  /** Written on the lot in place of `short`, when given. */
+  heading?: string;
   role: string;
   dates: string;
   place: string;
@@ -78,6 +80,12 @@ export type Village = {
    * characters.
    */
   tagline: string;
+  /**
+   * A few short lines painted under the name once the chicken is inside
+   * the lot, and taken away when it leaves. Fragments, not sentences:
+   * keep each under about 30 characters, and keep to three or so.
+   */
+  facts: string[];
   /** Headline numbers, listed in the sheet. */
   metrics: Metric[];
   /** Technologies, listed in the sheet. */
@@ -112,6 +120,7 @@ export const VILLAGES: Village[] = [
     color: "#4c7bd9",
     summary: "Mechanical Engineering at Queen's, where it all started.",
     tagline: "Learning how things are built.",
+    facts: ["Mechanical Engineering", "3rd year", "Kingston, ON"],
     metrics: [],
     tools: [],
     points: [
@@ -124,7 +133,7 @@ export const VILLAGES: Village[] = [
       {
         caption: "QUEEN'S UNIVERSITY",
         kind: "dash",
-        src: "/villages/queens/logo.png",
+        src: "/villages/queens/logo.webp",
         aspect: 607 / 225,
         color: true,
         alt: "The Queen's University crest and wordmark",
@@ -163,6 +172,7 @@ export const VILLAGES: Village[] = [
     color: "#2a9d8f",
     summary: "Python drone-control scripts on ROS2 and PX4.",
     tagline: "Teaching drones to fly themselves.",
+    facts: ["Software engineer", "Drone autonomy", "ROS2 · PX4 · Python"],
     metrics: [],
     tools: [
       { name: "ROS2", core: true },
@@ -185,7 +195,7 @@ export const VILLAGES: Village[] = [
       {
         caption: "QUEEN'S AEROSPACE",
         kind: "photo",
-        src: "/villages/qadt/logo.png",
+        src: "/villages/qadt/logo.webp",
         aspect: 392 / 225,
         color: true,
         alt: "The Queen's Aerospace logo: white lettering and a cyan arrow on navy",
@@ -197,6 +207,7 @@ export const VILLAGES: Village[] = [
     id: "playtoon",
     name: "Playtoon It Inc",
     short: "PLAYTOON",
+    heading: "SWE @PLAYTOON",
     role: "Full-Stack Software Engineering Intern",
     dates: "Sep 2025 – Jan 2026",
     place: "Remote",
@@ -206,6 +217,7 @@ export const VILLAGES: Village[] = [
     color: "#8b6cdb",
     summary: "Autosave and publishing APIs for a chapter editor.",
     tagline: "So no chapter ever gets lost.",
+    facts: ["Full-stack intern", "Autosave + publishing APIs", "React · PostgreSQL"],
     metrics: [
       {
         value: "5 MIN",
@@ -234,7 +246,7 @@ export const VILLAGES: Village[] = [
       {
         caption: "PLAYTOON.IT",
         kind: "photo",
-        src: "/villages/playtoon/logo.png",
+        src: "/villages/playtoon/logo.webp",
         aspect: 810 / 746,
         color: true,
         alt: "The Playtoon.it logo: white and black lettering on an orange open book",
@@ -255,6 +267,7 @@ export const VILLAGES: Village[] = [
     color: "#e0705a",
     summary: "An AI interview coach that reads speech, eye contact and vocabulary.",
     tagline: "Practice before the real thing.",
+    facts: ["AI interview coach", "Speech, eye contact, vocab", "Gemini · OpenCV · Flask"],
     metrics: [
       {
         value: "3",
@@ -291,7 +304,7 @@ export const VILLAGES: Village[] = [
       {
         caption: "GET-INTO.TECH",
         kind: "photo",
-        src: "/villages/getinto/icon.png",
+        src: "/villages/getinto/icon.webp",
         aspect: 1,
         color: true,
         alt: "The Get-Into.Tech app icon: white concentric rings on a purple gradient",
@@ -312,6 +325,7 @@ export const VILLAGES: Village[] = [
     color: "#e2a33b",
     summary: "Turns a goal into a roadmap where each step unlocks after its prerequisites.",
     tagline: "Big goals, one step at a time.",
+    facts: ["Goal-to-roadmap generator", "Steps unlock in order", "Gemini · React · Flask"],
     metrics: [
       {
         value: "6–12",
@@ -341,7 +355,7 @@ export const VILLAGES: Village[] = [
       {
         caption: "ROADMAP",
         kind: "dash",
-        src: "/villages/wayfinder/roadmap.png",
+        src: "/villages/wayfinder/roadmap.webp",
         aspect: 1309 / 455,
         color: true,
         alt: "A WayFinder roadmap for a software engineer, branching from Programming Fundamentals, with that step's tasks open beside it",
@@ -350,7 +364,7 @@ export const VILLAGES: Village[] = [
       {
         caption: "WAYFINDER",
         kind: "photo",
-        src: "/villages/wayfinder/logo.png",
+        src: "/villages/wayfinder/logo.webp",
         aspect: 765 / 486,
         color: true,
         alt: "The WayFinder logo: a winding road rising to an arrow, inside a circle",
@@ -362,6 +376,7 @@ export const VILLAGES: Village[] = [
     id: "gofleet",
     name: "GoFleet Corporation",
     short: "GOFLEET",
+    heading: "PRODUCT @GOFLEET",
     role: "Product Engineering Intern",
     dates: "Jun 2026 – Present",
     place: "Mississauga, ON",
@@ -371,6 +386,7 @@ export const VILLAGES: Village[] = [
     color: "#3f9e5b",
     summary: "A Driver Qualification platform that authorizes drivers by certification.",
     tagline: "The right drivers on the road.",
+    facts: ["Product engineering intern", "Driver qualification", "React · Supabase · Redis"],
     metrics: [
       {
         value: "10/10",
@@ -415,7 +431,7 @@ export const VILLAGES: Village[] = [
       {
         caption: "GOFLEET",
         kind: "dash",
-        src: "/villages/gofleet/banner.png",
+        src: "/villages/gofleet/banner.webp",
         aspect: 1284 / 594,
         color: true,
         alt: "The GoFleet logo over a sketch of a Geotab GO telematics device: powerful plug and play solutions",
@@ -427,6 +443,7 @@ export const VILLAGES: Village[] = [
     id: "zendu",
     name: "ZenduIT",
     short: "ZENDUIT",
+    heading: "SWE @ZENDUIT",
     role: "Software Engineering Intern",
     dates: "Jun 2026 – Present",
     place: "Mississauga, ON",
@@ -436,6 +453,7 @@ export const VILLAGES: Village[] = [
     color: "#3aa0c9",
     summary: "An indoor patient-tracking proof of concept with live geofences.",
     tagline: "Knowing where everyone is.",
+    facts: ["Software engineering intern", "Indoor patient tracking", "Next.js · Leaflet"],
     metrics: [
       {
         value: "3",
@@ -479,7 +497,7 @@ export const VILLAGES: Village[] = [
       {
         caption: "ZENDUIT",
         kind: "photo",
-        src: "/villages/zendu/logo.png",
+        src: "/villages/zendu/logo.webp",
         aspect: 946 / 652,
         color: true,
         alt: "The ZenduIT wordmark in blue",
@@ -500,6 +518,7 @@ export const VILLAGES: Village[] = [
     color: "#5b5fc7",
     summary: "A banking app for managing accounts across banks and sending money.",
     tagline: "Every account on one screen.",
+    facts: ["Multi-bank finance app", "Accounts + transfers", "Next.js · Appwrite · Dwolla"],
     metrics: [],
     tools: [
       { name: "Next.js", core: true },
@@ -527,7 +546,7 @@ export const VILLAGES: Village[] = [
       {
         caption: "SIGN IN",
         kind: "dash",
-        src: "/villages/bankview/signin.png",
+        src: "/villages/bankview/signin.webp",
         aspect: 1174 / 610,
         color: true,
         demo: "signin",
@@ -549,6 +568,7 @@ export const VILLAGES: Village[] = [
     color: "#b4545e",
     summary: "A V8 engine block, crankshaft and pistons, modelled in CAD.",
     tagline: "Eight cylinders, one crank.",
+    facts: ["CAD model", "Block, crank, pistons"],
     metrics: [],
     tools: [],
     points: [],
@@ -558,7 +578,7 @@ export const VILLAGES: Village[] = [
         // lying on the floor, it reads as the engine seen from above.
         caption: "TOP VIEW",
         kind: "portrait",
-        src: "/villages/engine/top.png",
+        src: "/villages/engine/top.webp",
         aspect: 340 / 522,
         color: true,
         alt: "Top view of the V8 engine model: two banks of four cylinders either side of the crankshaft",
@@ -567,7 +587,7 @@ export const VILLAGES: Village[] = [
       {
         caption: "ISOMETRIC VIEW",
         kind: "photo",
-        src: "/villages/engine/iso.png",
+        src: "/villages/engine/iso.webp",
         // Pre-slanted, so laid on the floor it stands square to the screen.
         // Its background grid is redrawn to match the top view's: the same
         // spacing in tiles, colour and line positions, edge to edge.
