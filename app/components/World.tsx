@@ -45,12 +45,14 @@ import {
   type Place,
 } from "./places";
 import { drawProp, propAtPoint, propsIn } from "./props";
-import { readPalette, watchTheme, type Palette } from "./theme";
+import { mixHex, readPalette, watchTheme, type Palette } from "./theme";
 import {
+  boardFloorAt,
   drawVillageFloors,
   demosPlaying,
   drawVillageSolids,
   hoverBoards,
+  hoverMatters,
   readVillageInk,
   stepBoardTilts,
   setImageReadyHandler,
@@ -115,6 +117,15 @@ const ZOOM_MS = 700;
 const VILLAGE_VIEW = { width: 2100, height: 1500 };
 /** How far above the lot's middle the view centres, for the tall things. */
 const VILLAGE_LIFT = 140;
+/**
+ * A village's facts: how long after arriving they start to fade in (so the
+ * zoom has mostly settled), how long each takes, how much later each line
+ * follows the one above, and how long they take to fade out on leaving.
+ */
+const FACTS_DELAY_MS = 350;
+const FACTS_IN_MS = 320;
+const FACTS_STAGGER_MS = 70;
+const FACTS_OUT_MS = 200;
 /** How long the view takes to ease to a new wheel zoom. */
 const WHEEL_ZOOM_MS = 180;
 /** Zoom per pixel scrolled, so a notch of about 100 px is about 14%. */
@@ -143,10 +154,16 @@ const MAP_HOVER_MS = 200;
 const EDGE_CULL_MS = 800;
 /** How many tiles a path may stray past the box round its two ends. */
 const PATH_MARGIN = 16;
+/**
+ * A right-click on something solid walks to the nearest open tile instead:
+ * looked for this many tiles round the click, trying at most this many.
+ */
+const OPEN_REACH = 10;
+const OPEN_TRIES = 12;
 /** How long the cross on an unreachable tile stays before it fades. */
 const NO_PATH_MS = 700;
 /**
- * How much bigger the route's dots and the no-way-there cross are drawn
+ * How much bigger the no-way-there cross is drawn
  * than one tile would suggest, to match the floor's 2 × 2 tile squares.
  */
 const MARKER_SCALE = 2;
@@ -263,6 +280,14 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
   const minis: Mini[] = [];
   /** The village the chicken is in, if any. */
   let inVillage: VillagePlan | null = null;
+  /**
+   * Villages whose facts are fading in or shown (`on`), or fading out from
+   * `from`. A village leaves the map once faded out. `factsFor` is the
+   * village they were last set for, so a change of village is noticed.
+   */
+  const facts = new Map<VillagePlan, { on: boolean; at: number; from: number }>();
+  let factsFor: VillagePlan | null = null;
+  let factsMoving = false;
   /** Which buildings of each village the chicken has stood beside. */
   const visited = new Map<string, Set<string>>();
 
@@ -654,6 +679,43 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
     return true;
   }
 
+  /** How shown line `line` of a village's facts is, from 0 to 1. */
+  function factShown(plan: VillagePlan, line: number, now: number) {
+    const state = facts.get(plan);
+    if (!state) return 0;
+    if (state.on) {
+      return progress(state.at + animated(FACTS_STAGGER_MS) * line, animated(FACTS_IN_MS), now);
+    }
+    return state.from * (1 - progress(state.at, animated(FACTS_OUT_MS), now));
+  }
+
+  /**
+   * Fades the facts in for the village the chicken has just entered and out
+   * for the one it left, and drops those that have faded out.
+   */
+  function stepFacts(now: number) {
+    if (inVillage !== factsFor) {
+      if (factsFor) {
+        facts.set(factsFor, { on: false, at: now, from: factShown(factsFor, 0, now) });
+      }
+      if (inVillage) {
+        facts.set(inVillage, { on: true, at: now + animated(FACTS_DELAY_MS), from: 0 });
+      }
+      factsFor = inVillage;
+    }
+    factsMoving = false;
+    for (const [plan, state] of facts) {
+      if (state.on) {
+        const lines = plan.flats.filter((f) => f.kind === "text" && f.reveal !== undefined).length;
+        if (factShown(plan, Math.max(0, lines - 1), now) < 1) factsMoving = true;
+      } else if (factShown(plan, 0, now) > 0) {
+        factsMoving = true;
+      } else {
+        facts.delete(plan);
+      }
+    }
+  }
+
   function draw(now: number) {
     frame = 0;
 
@@ -740,6 +802,51 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
       colors,
     });
 
+    if (
+      goal &&
+      (goal.reachable
+        ? route.length === 0 && now - chicken.moveStart >= STEP_MS
+        : now - goal.at >= NO_PATH_MS)
+    ) {
+      goal = null;
+    }
+    if (goal?.reachable) {
+      // The route lies just above the floor, under everything else: the
+      // villages, the places, the name and the chicken are all drawn after.
+      // The marker fills the whole floor square clicked.
+      const square = squareCenter(goal.col, goal.row);
+      ctx.save();
+      // Every floor square the route crosses is filled in, leaving out
+      // the chicken's own square and the target's. The shade runs from
+      // routeFar to routeNear as the squares near the target.
+      const squares: Cell[] = [];
+      let last = { col: chicken.col, row: chicken.row };
+      for (const cell of route) {
+        const skip =
+          sameSquare(last.col, last.row, cell.col, cell.row) ||
+          sameSquare(goal.col, goal.row, cell.col, cell.row);
+        last = cell;
+        if (!skip) squares.push(cell);
+      }
+      squares.forEach((cell, i) => {
+        const c = squareCenter(cell.col, cell.row);
+        ctx.fillStyle = mixHex(
+          colors.routeFar,
+          colors.routeNear,
+          (i + 1) / (squares.length + 1),
+        );
+        ctx.beginPath();
+        diamond(ctx, c.x, c.y, GRID_TILES);
+        ctx.fill();
+      });
+      // The target itself takes the nearest shade.
+      ctx.fillStyle = colors.routeNear;
+      ctx.beginPath();
+      diamond(ctx, square.x, square.y, GRID_TILES);
+      ctx.fill();
+      ctx.restore();
+    }
+
     // The world's edge is not drawn: the chicken still can't cross it
     // (see worldEdge.ts), but the floor reads as carrying on unbroken.
 
@@ -756,7 +863,8 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
     );
     const tilting = stepBoardTilts(now);
     ctx.lineWidth = 1 / zoom;
-    drawVillageFloors(ctx, villages, ink);
+    stepFacts(now);
+    drawVillageFloors(ctx, villages, ink, (plan, line) => factShown(plan, line, now));
 
     // Props, places and minis pop up once their floor is in place, in a
     // ripple out from the chicken. Returns how grown the thing on tile
@@ -833,65 +941,22 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
     }
     ctx.globalAlpha = 1;
 
-    if (
-      goal &&
-      (goal.reachable
-        ? route.length === 0 && now - chicken.moveStart >= STEP_MS
-        : now - goal.at >= NO_PATH_MS)
-    ) {
-      goal = null;
-    }
-    if (goal) {
-      // The marker outlines the whole floor square that was clicked; the
-      // cross for no way there sits on the clicked tile itself.
+    if (goal && !goal.reachable) {
+      // The cross for no way there sits on the clicked tile itself.
       const g = tileCenter(goal.col, goal.row);
-      const square = squareCenter(goal.col, goal.row);
       ctx.save();
-      if (goal.reachable) {
-        ctx.fillStyle = colors.strong;
-        ctx.globalAlpha = 0.5;
-        // One dot in the middle of each floor square the route crosses,
-        // leaving out the chicken's own square and the target's.
-        let last = { col: chicken.col, row: chicken.row };
-        for (const cell of route) {
-          const skip =
-            sameSquare(last.col, last.row, cell.col, cell.row) ||
-            sameSquare(goal.col, goal.row, cell.col, cell.row);
-          last = cell;
-          if (skip) continue;
-          const c = squareCenter(cell.col, cell.row);
-          ctx.beginPath();
-          ctx.ellipse(
-            c.x,
-            c.y,
-            5 * MARKER_SCALE,
-            3 * MARKER_SCALE,
-            0,
-            0,
-            Math.PI * 2,
-          );
-          ctx.fill();
-        }
-        ctx.globalAlpha = 1;
-        ctx.lineWidth = 2 / zoom;
-        ctx.strokeStyle = colors.strong;
-        ctx.beginPath();
-        diamond(ctx, square.x, square.y, GRID_TILES);
-        ctx.stroke();
-      } else {
-        ctx.globalAlpha = 1 - progress(goal.at, NO_PATH_MS, now);
-        ctx.lineWidth = 3 / zoom;
-        ctx.lineCap = "round";
-        ctx.strokeStyle = colors.strong;
-        const dx = HALF_W * 0.35 * MARKER_SCALE;
-        const dy = HALF_H * 0.35 * MARKER_SCALE;
-        ctx.beginPath();
-        ctx.moveTo(g.x - dx, g.y - dy);
-        ctx.lineTo(g.x + dx, g.y + dy);
-        ctx.moveTo(g.x + dx, g.y - dy);
-        ctx.lineTo(g.x - dx, g.y + dy);
-        ctx.stroke();
-      }
+      ctx.globalAlpha = 1 - progress(goal.at, NO_PATH_MS, now);
+      ctx.lineWidth = 3 / zoom;
+      ctx.lineCap = "round";
+      ctx.strokeStyle = colors.strong;
+      const dx = HALF_W * 0.35 * MARKER_SCALE;
+      const dy = HALF_H * 0.35 * MARKER_SCALE;
+      ctx.beginPath();
+      ctx.moveTo(g.x - dx, g.y - dy);
+      ctx.lineTo(g.x + dx, g.y + dy);
+      ctx.moveTo(g.x + dx, g.y - dy);
+      ctx.lineTo(g.x - dx, g.y + dy);
+      ctx.stroke();
       ctx.restore();
     }
 
@@ -1057,6 +1122,7 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
       goal !== null ||
       minis.length > 0 ||
       tilting ||
+      factsMoving ||
       demosPlaying() ||
       edge.x !== 0 ||
       edge.y !== 0 ||
@@ -1206,7 +1272,8 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
     event.preventDefault();
     if (performance.now() < propsFrom) return;
     const at = mapPoint(currentMapFrame(), event.clientX, event.clientY);
-    walkTo(tileAtWorld(at.x, at.y));
+    const tile = tileAtWorld(at.x, at.y);
+    walkTo(tile, { col: tile.col + 0.5, row: tile.row + 0.5 });
   }
 
   function onMapPointerUp(event: PointerEvent) {
@@ -1240,12 +1307,6 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
     };
   }
 
-  /** The floor tile under a window point. */
-  function tileAt(clientX: number, clientY: number): Cell {
-    const { x, y } = worldAt(clientX, clientY);
-    return tileAtWorld(x, y);
-  }
-
   /** The floor tile under world point (x, y), in world pixels. */
   function tileAtWorld(x: number, y: number): Cell {
     return {
@@ -1260,7 +1321,11 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
     if (goal?.reachable) goal = null;
   }
 
-  /** Right-click: walk to that tile by the shortest way round what blocks. */
+  /**
+   * Right-click: walk to that tile by the shortest way round what blocks.
+   * A click on a picture aims for the floor under the spot clicked, and a
+   * blocked tile gives way to the nearest one that can be reached.
+   */
   function onContextMenu(event: MouseEvent) {
     event.preventDefault();
     if (
@@ -1269,13 +1334,20 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
     ) {
       return;
     }
-    walkTo(tileAt(event.clientX, event.clientY));
+    const point = worldAt(event.clientX, event.clientY);
+    const onBoard = boardFloorAt(visiblePlans(viewBounds(camera.x, camera.y)), point);
+    if (onBoard) {
+      walkTo({ col: Math.floor(onBoard.col), row: Math.floor(onBoard.row) }, onBoard);
+    } else {
+      const tile = tileAtWorld(point.x, point.y);
+      walkTo(tile, { col: tile.col + 0.5, row: tile.row + 0.5 });
+    }
   }
 
-  /** The chicken walks to `target` by the shortest way round what blocks. */
-  function walkTo(target: Cell) {
+  /** The path from the chicken to `target`, or null if there is none. */
+  function pathTo(target: Cell) {
     const start = { col: chicken.col, row: chicken.row };
-    const path = shortestPath(
+    return shortestPath(
       start,
       target,
       {
@@ -1286,10 +1358,54 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
       },
       blockedAt,
     );
+  }
+
+  /**
+   * The chicken walks to `target` by the shortest way round what blocks.
+   * If `target` itself is blocked, it heads for the open tile nearest
+   * `aim` (the grid point clicked) that it can reach instead.
+   */
+  function walkTo(target: Cell, aim?: { col: number; row: number }) {
+    let goalTile = target;
+    let path: Cell[] | null;
+    if (blockedAt(target.col, target.row) && aim) {
+      path = null;
+      for (const tile of openTilesNear(aim)) {
+        path = pathTo(tile);
+        if (path) {
+          goalTile = tile;
+          break;
+        }
+      }
+    } else {
+      path = pathTo(target);
+    }
     releaseKeys();
     route = path ?? [];
-    goal = { ...target, at: performance.now(), reachable: path !== null };
+    goal = { ...goalTile, at: performance.now(), reachable: path !== null };
     schedule();
+  }
+
+  /**
+   * Open tiles near grid point `aim`, nearest first: within OPEN_REACH
+   * tiles, and at most OPEN_TRIES of them, since each is tried as a path.
+   */
+  function openTilesNear(aim: { col: number; row: number }) {
+    const tiles: (Cell & { d: number })[] = [];
+    const c0 = Math.floor(aim.col);
+    const r0 = Math.floor(aim.row);
+    for (let dc = -OPEN_REACH; dc <= OPEN_REACH; dc++) {
+      for (let dr = -OPEN_REACH; dr <= OPEN_REACH; dr++) {
+        const col = c0 + dc;
+        const row = r0 + dr;
+        if (blockedAt(col, row)) continue;
+        tiles.push({ col, row, d: Math.hypot(col + 0.5 - aim.col, row + 0.5 - aim.row) });
+      }
+    }
+    return tiles
+      .sort((a, b) => a.d - b.d)
+      .slice(0, OPEN_TRIES)
+      .map(({ col, row }) => ({ col, row }));
   }
 
   /** Scrolling zooms the view in or out about its centre. */
@@ -1349,8 +1465,12 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
   function onPointerMove(event: PointerEvent) {
     if (event.pointerType !== "mouse") return;
     pointer = { x: event.clientX, y: event.clientY };
-    schedule();
     const { x, y } = worldAt(event.clientX, event.clientY);
+    // Only the pictures follow the mouse (they tip towards it). Over bare
+    // floor a move changes nothing on screen, so it needs no new frame.
+    if (hoverMatters(visiblePlans(viewBounds(camera.x, camera.y)), { x, y })) {
+      schedule();
+    }
     const over =
       performance.now() >= propsFrom && propAtPoint(x, y)?.kind.id === "claude";
     const cursor = over ? "pointer" : "";

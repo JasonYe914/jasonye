@@ -1,75 +1,23 @@
 "use client";
 
-import { useEffect, useRef, type KeyboardEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  type CSSProperties,
+  type KeyboardEvent,
+  type PointerEvent,
+} from "react";
+import { PROJECTS } from "./projects";
 import { travelTo } from "./villageStore";
 import { VILLAGES, type Village } from "./villages";
+import { EMAIL_HREF, GITHUB, LINKEDIN } from "./contact";
 
 /*
- * About: a flat page over the world, opened from the dock. One grid: the
- * words (a big title, a short intro and the path) down the left, and a
- * mosaic of pictures beside them. On narrow screens the pictures fall
- * below the words.
- *
- * The path is read from the villages, so it stays in step with the world.
+ * About: a page over the world, opened from the dock. Words only: a hello,
+ * a few numbers, what I work on, the path so far, the tools, and how to
+ * get in touch. Everything countable is counted from the villages and the
+ * projects, so the page stays in step with the rest of the site.
  */
-
-const INTRO =
-  "I'm Jason, a Mechanical Engineering student at Queen's who ended up writing more code than CAD. I like building things people actually use, from drone scripts to web apps.";
-
-/**
- * The pictures, in two rows beside the words: a squarer one then a wide
- * one on top, a wide one then a squarer one below, so the seams stagger.
- * `area` names each one's grid cell, and `focus` which part of it to keep
- * when it is cropped. A picture with `fill` is shown whole instead, on its
- * own flat background colour, so nothing of it is cut off.
- *
- * The engine picture in /about is a copy made for this page: un-slanted
- * (the world's copy is pre-slanted to lie on its floor), with its CAD grid,
- * which faded out partway, redrawn evenly to the edges, and framed tall
- * enough that any cell crops only grid.
- */
-type Photo = {
-  area: string;
-  src: string;
-  focus: string;
-  alt: string;
-  fill?: string;
-};
-
-const PHOTOS: Photo[] = [
-  {
-    area: "a",
-    src: "/about/engine-iso.png",
-    focus: "center",
-    alt: "Isometric view of a V8 engine block modelled in CAD, its translucent block showing the pistons and crankshaft",
-  },
-  {
-    area: "b",
-    src: "/villages/queens/building.jpg",
-    focus: "center 55%",
-    alt: "The glass front of an engineering building at Queen's at dusk",
-  },
-  {
-    area: "c",
-    src: "/villages/qadt/logo.png",
-    focus: "center",
-    fill: "rgb(18 47 79)",
-    alt: "The Queen's Aerospace Design Team logo",
-  },
-  {
-    area: "d",
-    src: "/villages/queens/campus.jpg",
-    focus: "78% center",
-    alt: "Aerial view of the Queen's campus and stadium by Lake Ontario",
-  },
-];
-
-const KIND_LABEL: Record<Village["kind"], string> = {
-  Education: "Education",
-  Experience: "Internship",
-  Team: "Design team",
-  Project: "Project",
-};
 
 const MONTHS = "JanFebMarAprMayJunJulAugSepOctNovDec";
 
@@ -86,12 +34,135 @@ function yearOf(dates: string) {
   return dates.match(/\d{4}/)?.[0] ?? "TBD";
 }
 
-/** Every village, newest first: one line each. */
+/** Every village, newest first. */
 const PATH = [...VILLAGES].sort((a, b) => {
   const x = startOf(a.dates);
   const y = startOf(b.dates);
   return x === y ? 0 : y > x ? 1 : -1;
 });
+
+const KIND_LABEL: Record<Village["kind"], string> = {
+  Education: "Education",
+  Experience: "Internship",
+  Team: "Design team",
+  Project: "Project",
+};
+
+const ofKind = (kind: Village["kind"]) => VILLAGES.filter((v) => v.kind === kind);
+const NOW = ofKind("Experience").filter((v) => v.dates.includes("Present"));
+const QUEENS = VILLAGES.find((v) => v.id === "queens");
+
+const NUMBERS = [
+  { value: ofKind("Experience").length, label: "Internships" },
+  { value: PROJECTS.length, label: "Projects" },
+  { value: ofKind("Team").length, label: "Design team" },
+  { value: QUEENS ? yearOf(QUEENS.dates) : "2024", label: "At Queen's since" },
+];
+
+/** What I work on: one card each. */
+const AREAS = [
+  {
+    title: "Full-stack web apps",
+    text: "React and Next.js up front, Express, Flask and Postgres behind. Autosave and publishing APIs at Playtoon, a driver qualification platform at GoFleet.",
+  },
+  {
+    title: "Drones that fly themselves",
+    text: "Python drone-control scripts on ROS2 and PX4 with the Queen's Aerospace Design Team.",
+  },
+  {
+    title: "AI and machine learning",
+    text: "Neural networks written from scratch in Java and NumPy, and apps built on Gemini, like Wayfinder and Get-Into.Tech.",
+  },
+  {
+    title: "CAD and mechanical design",
+    text: "Where the degree started: modelling parts and assemblies, like a V8 engine block with its crankshaft and pistons.",
+  },
+];
+
+/** Every tool used anywhere, most used first. */
+const TOOLBOX = (() => {
+  const counts = new Map<string, number>();
+  const add = (name: string) => counts.set(name, (counts.get(name) ?? 0) + 1);
+  VILLAGES.forEach((v) => v.tools.forEach((t) => add(t.name)));
+  PROJECTS.filter((p) => !p.village).forEach((p) => p.tools.forEach((t) => add(t.name)));
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([name, count]) => ({ name, count }));
+})();
+
+/**
+ * Each tool's badge colour, after its brand: [background, text]. Anything
+ * not listed gets a neutral slate.
+ */
+const BRAND: Record<string, [string, string]> = {
+  React: ["#20232a", "#61dafb"],
+  Java: ["#ed8b00", "#ffffff"],
+  Python: ["#3776ab", "#ffffff"],
+  TypeScript: ["#3178c6", "#ffffff"],
+  JavaScript: ["#f7df1e", "#000000"],
+  Flask: ["#000000", "#ffffff"],
+  "Gemini API": ["#8e75b2", "#ffffff"],
+  "Next.js": ["#000000", "#ffffff"],
+  Appwrite: ["#fd366e", "#ffffff"],
+  AssemblyAI: ["#2545d3", "#ffffff"],
+  Docker: ["#2496ed", "#ffffff"],
+  Dwolla: ["#f5a623", "#000000"],
+  ElevenLabs: ["#000000", "#ffffff"],
+  Express: ["#404d59", "#ffffff"],
+  Git: ["#f05032", "#ffffff"],
+  Leaflet: ["#199900", "#ffffff"],
+  NumPy: ["#013243", "#ffffff"],
+  OpenCV: ["#5c3ee8", "#ffffff"],
+  PostgreSQL: ["#4169e1", "#ffffff"],
+  PX4: ["#2c3e50", "#ffffff"],
+  Redis: ["#dc382d", "#ffffff"],
+  "Redux Toolkit": ["#764abc", "#ffffff"],
+  ROS2: ["#22314e", "#ffffff"],
+  shadcn: ["#000000", "#ffffff"],
+  Supabase: ["#3ecf8e", "#000000"],
+};
+
+function badgeStyle(name: string) {
+  const [bg, fg] = BRAND[name] ?? ["#475569", "#ffffff"];
+  return { "--badge-bg": bg, "--badge-fg": fg } as CSSProperties;
+}
+
+/**
+ * A gradient that follows the pointer. On entering, the gradient points
+ * away from the side the pointer came in from; while it moves, the colours
+ * slide along with it and a soft light sits under it. Written straight to
+ * the element's CSS variables, so nothing re-renders.
+ */
+function where(event: PointerEvent<HTMLElement>) {
+  const box = event.currentTarget.getBoundingClientRect();
+  return {
+    el: event.currentTarget,
+    x: ((event.clientX - box.left) / box.width) * 100,
+    y: ((event.clientY - box.top) / box.height) * 100,
+  };
+}
+
+const GLOW = {
+  onPointerEnter(event: PointerEvent<HTMLElement>) {
+    const { el, x, y } = where(event);
+    // From the entry point towards the middle, as a CSS angle (0deg = up).
+    const angle = (Math.atan2(50 - y, 50 - x) * 180) / Math.PI + 90;
+    el.style.setProperty("--glow-angle", `${angle}deg`);
+    el.style.setProperty("--glow-x", `${x}%`);
+    el.style.setProperty("--glow-y", `${y}%`);
+  },
+  onPointerMove(event: PointerEvent<HTMLElement>) {
+    const { el, x, y } = where(event);
+    el.style.setProperty("--glow-x", `${x}%`);
+    el.style.setProperty("--glow-y", `${y}%`);
+  },
+};
+
+const LINKS = [
+  { label: "Email", href: EMAIL_HREF },
+  { label: "LinkedIn", href: LINKEDIN },
+  { label: "GitHub", href: GITHUB },
+];
 
 export default function AboutPanel({
   onClose,
@@ -136,19 +207,64 @@ export default function AboutPanel({
       </header>
 
       <article className="about-sheet">
-        <div className="about-words">
-          <h2 id="about-title" className="about-title">
-            About me
-          </h2>
-          <p className="about-lead">{INTRO}</p>
+        {/* Hello */}
+        <header className="about-hero">
+          {/* The links sit under the name, exactly as wide as it. */}
+          <div className="about-namecard">
+            <h2 id="about-title" className="about-title">
+              Hi, I&apos;m <span className="about-name">Jason.</span>
+            </h2>
+            <div className="about-links">
+              {LINKS.map((link) => (
+                <a
+                  {...GLOW}
+                  className="glow"
+                  key={link.label}
+                  href={link.href}
+                  target={link.href.startsWith("http") ? "_blank" : undefined}
+                  rel="noreferrer"
+                >
+                  {link.label}
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M7 17 17 7M8 7h9v9" />
+                  </svg>
+                </a>
+              ))}
+            </div>
+          </div>
+          <p className="about-lead">
+            A Mechanical Engineering student at Queen&apos;s who ended up writing more code
+            than CAD. I like building things people actually use, from drone scripts to
+            web apps.
+          </p>
+          {NOW.length > 0 && (
+            <p className="about-now">
+              <span className="about-now-dot" aria-hidden="true" />
+              Right now: {NOW.map((v) => v.role.replace(/ Intern$/, " intern") + " at " + v.name.replace(/ Corporation$/, "")).join(" and ")}
+              , {NOW[0].place}.
+            </p>
+          )}
+        </header>
 
-          <section aria-labelledby="about-path">
+        {/* Numbers */}
+        <dl className="about-numbers">
+          {NUMBERS.map((n) => (
+            <div key={n.label}>
+              <dt>{n.label}</dt>
+              <dd>{n.value}</dd>
+            </div>
+          ))}
+        </dl>
+
+        <div className="about-split">
+          {/* The path */}
+          <section className="about-block" aria-labelledby="about-path">
             <h3 id="about-path" className="about-label">
-              Path
+              The path so far
             </h3>
             <ol className="about-path">
               {PATH.map((village) => (
-                <li key={village.id}>
+                <li key={village.id} style={{ "--dot": village.color } as CSSProperties}>
                   <button
                     type="button"
                     onClick={() => {
@@ -157,36 +273,54 @@ export default function AboutPanel({
                     }}
                     aria-label={`${village.name}, ${KIND_LABEL[village.kind]}, ${village.dates}. Go there in the world.`}
                   >
-                    <span className="about-year">{yearOf(village.dates)}</span>
+                    <span className="about-path-when">
+                      {yearOf(village.dates)} · {KIND_LABEL[village.kind]}
+                    </span>
                     <strong>{village.name}</strong>
-                    <span className="about-kind">{KIND_LABEL[village.kind]}</span>
+                    <span className="about-path-role">{village.role}</span>
+                    <span className="about-path-go" aria-hidden="true">
+                      Visit
+                      <svg viewBox="0 0 24 24">
+                        <path d="M5 12h14M13 6l6 6-6 6" />
+                      </svg>
+                    </span>
                   </button>
                 </li>
               ))}
             </ol>
           </section>
-        </div>
 
-        {PHOTOS.map((photo) => (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            key={photo.src}
-            src={photo.src}
-            alt={photo.alt}
-            className="about-photo"
-            data-area={photo.area}
-            style={{
-              gridArea: photo.area,
-              objectPosition: photo.focus,
-              ...(photo.fill && {
-                objectFit: "contain",
-                background: photo.fill,
-                padding: "5%",
-              }),
-            }}
-            loading="lazy"
-          />
-        ))}
+          <div className="about-side">
+            {/* Tools */}
+            <section className="about-block" aria-labelledby="about-tools">
+              <h3 id="about-tools" className="about-label">
+                Toolbox
+              </h3>
+              <ul className="about-tools">
+                {TOOLBOX.map((tool) => (
+                  <li key={tool.name} style={badgeStyle(tool.name)}>
+                    {tool.name}
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            {/* What I work on */}
+            <section className="about-block" aria-labelledby="about-areas">
+              <h3 id="about-areas" className="about-label">
+                What I work on
+              </h3>
+              <ul className="about-areas">
+                {AREAS.map((area) => (
+                  <li key={area.title} {...GLOW} className="glow">
+                    <h4>{area.title}</h4>
+                    <p>{area.text}</p>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          </div>
+        </div>
       </article>
     </section>
   );

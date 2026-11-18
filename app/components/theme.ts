@@ -36,6 +36,9 @@ export type Palette = {
   /** The tile the chicken is on: its shade, and the outline round it. */
   here: string;
   hereEdge: string;
+  /** The route's squares: far from the target, and next to it. */
+  routeFar: string;
+  routeNear: string;
   /** The chicken's shadow. */
   shadow: string;
   /** The name's gradient stops, from its first letter to its last. */
@@ -59,12 +62,14 @@ export function readPalette(): Palette {
     map: read("--map-floor"),
     here: read("--tile-here"),
     hereEdge: read("--tile-here-edge"),
+    routeFar: read("--route-far"),
+    routeNear: read("--route-near"),
     shadow: read("--shadow"),
     ink: [read("--name-1"), read("--name-2"), read("--name-3"), read("--name-4")],
     strong: read("--accent-strong"),
     mid: read("--accent-mid"),
     soft: read("--accent-soft"),
-    mono: `${read("--font-geist-mono") || "ui-monospace"}, monospace`,
+    mono: `${read("--font-fun") || "Arial"}, sans-serif`,
   };
 }
 
@@ -80,4 +85,18 @@ export function watchTheme(onChange: () => void) {
     attributeFilter: ["data-theme"],
   });
   return () => observer.disconnect();
+}
+
+/** Blends two #rrggbb colours, `t` of the way from `a` to `b`. */
+export function mixHex(a: string, b: string, t: number) {
+  const pa = parseInt(a.slice(1), 16);
+  const pb = parseInt(b.slice(1), 16);
+  if (Number.isNaN(pa) || Number.isNaN(pb)) return t < 0.5 ? a : b;
+  const ch = (shift: number) => {
+    const x = (pa >> shift) & 255;
+    const y = (pb >> shift) & 255;
+    return Math.round(x + (y - x) * t);
+  };
+  const rgb = (ch(16) << 16) | (ch(8) << 8) | ch(0);
+  return `#${rgb.toString(16).padStart(6, "0")}`;
 }

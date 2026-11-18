@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import type { Project } from "./projects";
 
 /*
@@ -22,7 +23,11 @@ export default function ProjectMedia({
   // A real image sits on the plain well; only the sketches get the grid.
   if (board?.src) {
     return (
-      <div className={classes} data-kind="image" style={{ aspectRatio: aspect }}>
+      <div
+        className={classes}
+        data-kind="image"
+        style={{ aspectRatio: aspect, "--aspect": aspect } as CSSProperties}
+      >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={board.src} alt={board.alt} className="media-shot" />
       </div>

@@ -67,11 +67,11 @@ const PAGES: { id: string; label: string; icon: ReactNode }[] = [
 ];
 
 /*
- * Magnification, like the macOS Dock turned on its side. Each icon grows
- * by how close the pointer is to where it sits at rest: the one under the
- * pointer the most, its neighbours a little, the rest not at all. Icons
- * are left-aligned, so growing pushes them out to the right, and together
- * they bulge out of the bar in a curve.
+ * Magnification, like the macOS Dock. Each icon grows by how close the
+ * pointer is to where it sits at rest: the one under the pointer the most,
+ * its neighbours a little, the rest not at all. Icons sit on the bottom
+ * edge, so growing pushes them up, and together they bulge out of the top
+ * of the bar in a curve.
  */
 /** Resting size of an icon, the gap between icons, and the bar's padding. */
 const SIZE = 44;
@@ -91,8 +91,8 @@ const REST = (() => {
     { length: ITEM_COUNT },
     (_, index) => PAD + SIZE / 2 + index * (SIZE + GAP),
   );
-  const height = centers[ITEM_COUNT - 1] + SIZE / 2 + PAD;
-  return centers.map((center) => center - height / 2);
+  const length = centers[ITEM_COUNT - 1] + SIZE / 2 + PAD;
+  return centers.map((center) => center - length / 2);
 })();
 
 function growthAt(index: number, pointer: number | null) {
@@ -117,9 +117,78 @@ function subscribeToNothing() {
   return () => {};
 }
 
+/** Kept once, rather than asked for again on every pointer move. */
+let reducedMotionQuery: MediaQueryList | null = null;
+function prefersReducedMotion() {
+  reducedMotionQuery ??= matchMedia("(prefers-reduced-motion: reduce)");
+  return reducedMotionQuery.matches;
+}
+
+type FocusProps = {
+  onFocus: (event: React.FocusEvent<HTMLButtonElement>) => void;
+  onBlur: () => void;
+};
+
 /**
- * A vertical dock on the left edge: the pages, then the theme switch.
- * Each icon shows its name to the right on hover or focus.
+ * The bar itself, and its magnification. The pointer's position lives
+ * here rather than in NavBar, so each move re-renders just the icons and
+ * not the panels NavBar opens (the gallery, the about page) with them.
+ * `children` (the settings panel) is made by NavBar, so it is left alone
+ * too when only the pointer moves.
+ */
+function Dock({
+  palette,
+  items,
+  children,
+}: {
+  palette: string;
+  items: (
+    sizeOf: (index: number) => number,
+    focusProps: (index: number) => FocusProps,
+  ) => ReactNode;
+  children?: ReactNode;
+}) {
+  /** Pointer distance from the middle of the bar, while it is over it. */
+  const [pointer, setPointer] = useState<number | null>(null);
+
+  function track(event: PointerEvent<HTMLElement>) {
+    if (event.pointerType !== "mouse") return;
+    if (prefersReducedMotion()) return;
+    const box = event.currentTarget.getBoundingClientRect();
+    setPointer(event.clientX - (box.left + box.width / 2));
+  }
+
+  /** Keyboard focus magnifies around the focused icon, as a pointer would. */
+  const focusProps = (index: number): FocusProps => ({
+    onFocus: (event) => {
+      if (event.currentTarget.matches(":focus-visible")) {
+        setPointer(REST[index]);
+      }
+    },
+    onBlur: () => setPointer(null),
+  });
+
+  const sizeOf = (index: number) => SIZE * (1 + growthAt(index, pointer));
+
+  return (
+    <nav
+      aria-label="Main"
+      data-palette={palette}
+      onPointerMove={track}
+      onPointerLeave={() => setPointer(null)}
+      className="nav-bar fixed bottom-9 left-1/2 z-40 flex -translate-x-1/2 flex-row items-end rounded-full"
+      style={{ padding: PAD, gap: GAP, height: SIZE + 2 * PAD }}
+    >
+      {items(sizeOf, focusProps)}
+      {children}
+    </nav>
+  );
+}
+
+/**
+ * A horizontal dock at the bottom middle: the pages, then the theme
+ * switch and the settings. Each icon shows its name above it on hover or
+ * focus.
  */
 export default function NavBar() {
   const [active, setActive] = useState("home");
@@ -197,8 +266,6 @@ export default function NavBar() {
         }),
       );
   }
-  /** Pointer height from the middle of the bar, while it is over it. */
-  const [pointer, setPointer] = useState<number | null>(null);
   const palette = useSyncExternalStore(
     subscribeToNothing,
     readPalette,
@@ -206,35 +273,12 @@ export default function NavBar() {
   );
   const { theme, toggle } = useThemeToggle();
 
-  function track(event: PointerEvent<HTMLElement>) {
-    if (event.pointerType !== "mouse") return;
-    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const box = event.currentTarget.getBoundingClientRect();
-    setPointer(event.clientY - (box.top + box.height / 2));
-  }
-
-  /** Keyboard focus magnifies around the focused icon, as a pointer would. */
-  const focusProps = (index: number) => ({
-    onFocus: (event: React.FocusEvent<HTMLButtonElement>) => {
-      if (event.currentTarget.matches(":focus-visible")) {
-        setPointer(REST[index]);
-      }
-    },
-    onBlur: () => setPointer(null),
-  });
-
-  const sizeOf = (index: number) => SIZE * (1 + growthAt(index, pointer));
-
   return (
     <>
-      <nav
-        aria-label="Main"
-        data-palette={palette}
-        onPointerMove={track}
-        onPointerLeave={() => setPointer(null)}
-        className="nav-bar fixed top-1/2 left-4 z-40 flex -translate-y-1/2 flex-col items-start rounded-full"
-        style={{ padding: PAD, gap: GAP, width: SIZE + 2 * PAD }}
-      >
+      <Dock
+        palette={palette}
+        items={(sizeOf, focusProps) => (
+          <>
         {PAGES.map((page, index) => {
           const current =
             page.id ===
@@ -338,7 +382,9 @@ export default function NavBar() {
           </svg>
           <span className="nav-tip">Settings</span>
         </button>
-
+          </>
+        )}
+      >
         {settingsOpen && (
           <SettingsMenu
             onClose={() => setSettingsOpen(false)}
@@ -351,7 +397,7 @@ export default function NavBar() {
             }}
           />
         )}
-      </nav>
+      </Dock>
       {galleryOpen && (
         // Opened by the address (back from a project's page), or in place
         // of the about page, it is there at once rather than fading in.

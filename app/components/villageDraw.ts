@@ -18,7 +18,7 @@ import { LOT, type Board } from "./villages";
 
 /** Colours the villages paint with, read from the CSS custom properties. */
 export type VillageInk = Record<Exclude<ColorKey, "accent" | "accent2">, string> &
-  Record<Exclude<InkKey, "accent">, string> & {
+  Record<Exclude<InkKey, "accent" | "accent2" | "hueUp" | "hueDown">, string> & {
     edge: string;
     /** The friendly rounded face the words on the floor are set in. */
     fun: string;
@@ -63,7 +63,7 @@ export function readVillageInk(): VillageInk {
     ink: read("--foreground"),
     edge: night ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.1)",
     shadow: read("--float-shadow"),
-    mono: `${read("--font-geist-mono") || "ui-monospace"}, monospace`,
+    mono: `${read("--font-fun") || "Arial"}, sans-serif`,
     night,
   };
 }
@@ -90,13 +90,56 @@ function mix(a: string, b: string, t: number) {
   return toCss(A.map((v, i) => v + (B[i] - v) * t));
 }
 
-/** The village's own hue, a touch lighter at night, and a paler partner. */
+/** Turns a colour `degrees` round the colour wheel, keeping its lightness. */
+function turnHue(color: string, degrees: number) {
+  const [r, g, b] = rgb(color).map((v) => v / 255);
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  const d = max - min;
+  if (d === 0) return color;
+  let h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  h = (((h * 60 + degrees) % 360) + 360) % 360;
+  const x = d * (1 - Math.abs(((h / 60) % 2) - 1));
+  const [r1, g1, b1] =
+    h < 60 ? [d, x, 0] : h < 120 ? [x, d, 0] : h < 180 ? [0, d, x] : h < 240 ? [0, x, d] : h < 300 ? [x, 0, d] : [d, 0, x];
+  const m = l - d / 2;
+  return toCss([r1, g1, b1].map((v) => (v + m) * 255));
+}
+
+/** How far round the wheel the facts' extra inks sit from the village's hue. */
+const HUE_TURN = 42;
+
+/**
+ * The village's own hue, a touch lighter at night, a paler partner, and
+ * the same hue turned a little either way, for its facts.
+ */
 function accents(ink: VillageInk, plan: VillagePlan) {
+  // Asked for by every plate on every frame, but they only change with the
+  // theme (a new `ink`), so they are worked out once per village per theme.
+  let byPlan = accentCache.get(ink);
+  if (!byPlan) {
+    byPlan = new Map();
+    accentCache.set(ink, byPlan);
+  }
+  let found = byPlan.get(plan);
+  if (!found) {
+    found = workOutAccents(ink, plan);
+    byPlan.set(plan, found);
+  }
+  return found;
+}
+
+const accentCache = new WeakMap<VillageInk, Map<VillagePlan, ReturnType<typeof workOutAccents>>>();
+
+function workOutAccents(ink: VillageInk, plan: VillagePlan) {
   const color = plan.village.color;
   const accent = ink.night ? mix(color, "#ffffff", 0.15) : color;
   return {
     accent,
     accent2: mix(accent, ink.night ? "#000000" : "#ffffff", ink.night ? 0.3 : 0.45),
+    hueUp: turnHue(accent, HUE_TURN),
+    hueDown: turnHue(accent, -HUE_TURN),
   };
 }
 
@@ -107,10 +150,21 @@ function fillFor(color: ColorKey, plan: VillagePlan, ink: VillageInk) {
 
 /** Hex for shading: accent2 is computed as rgb(), so shade from its parts. */
 function shadeAny(color: string, factor: number) {
-  if (color.startsWith("#")) return shade(color, factor);
-  const parts = color.match(/\d+(\.\d+)?/g)?.map(Number) ?? [128, 128, 128];
-  return toCss(parts.slice(0, 3).map((v) => v * factor));
+  // A handful of colours and factors, asked for every frame: kept.
+  const key = `${color}|${factor}`;
+  let value = shadeCache.get(key);
+  if (value === undefined) {
+    if (color.startsWith("#")) value = shade(color, factor);
+    else {
+      const parts = color.match(/\d+(\.\d+)?/g)?.map(Number) ?? [128, 128, 128];
+      value = toCss(parts.slice(0, 3).map((v) => v * factor));
+    }
+    shadeCache.set(key, value);
+  }
+  return value;
 }
+
+const shadeCache = new Map<string, string>();
 
 function face(ctx: CanvasRenderingContext2D, points: [number, number, number][], fill: string) {
   ctx.beginPath();
@@ -140,7 +194,10 @@ function drawFloorText(
   ink: VillageInk,
 ) {
   const size = item.size;
-  const fill = item.color === "accent" ? accents(ink, plan).accent : ink[item.color];
+  const fill =
+    item.color === "accent" || item.color === "accent2" || item.color === "hueUp" || item.color === "hueDown"
+      ? accents(ink, plan)[item.color]
+      : ink[item.color];
   const font = `600 20px ${ink.fun}`;
   // Laid out once into a sprite, then stamped: the words never change.
   const width = (measure(item.text, font) / 20) * size + 0.3 * size;
@@ -148,6 +205,9 @@ function drawFloorText(
   ctx.translate(0, -item.z * TILE_SIDE);
   ctx.transform(HALF_W, HALF_H, -HALF_W, HALF_H, 0, 0);
   ctx.translate(item.col, item.row);
+  // Turned text reads up-right, along the rows, with its letters standing
+  // towards the back.
+  if (item.turned) ctx.rotate(-Math.PI / 2);
   stamp(ctx, `vtext|${item.text}|${size}|${fill}|${font}|${fontsReady}`, -0.1 * size, -size, width, 1.45 * size, (p) => {
     // Fonts misbehave at sizes under a pixel, so the text is set large
     // and scaled down to tile units.
@@ -366,11 +426,12 @@ export function demosPlaying() {
   return demoPlaying;
 }
 
+let reducedMotionQuery: MediaQueryList | null = null;
+
 function stillMotion() {
-  return (
-    typeof window !== "undefined" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches
-  );
+  if (typeof window === "undefined") return false;
+  reducedMotionQuery ??= window.matchMedia("(prefers-reduced-motion: reduce)");
+  return reducedMotionQuery.matches;
 }
 
 // ---------------------------------------------------------------------------
@@ -395,9 +456,44 @@ let tiltedAt = 0;
  * `plans`: the front-most one, judged by where it floats. Pass null when
  * the mouse is away from the world.
  */
+/**
+ * The floor point, in grid space, under the picture at world point
+ * `point`: where on its footprint the point falls, taking its float into
+ * account. The topmost picture wins. Null if the point misses them all.
+ */
+export function boardFloorAt(plans: VillagePlan[], point: { x: number; y: number }) {
+  let hit: { col: number; row: number } | null = null;
+  for (const plan of plans) {
+    for (const { solid } of platesOf(plan)) {
+      if (solid.kind !== "board") continue;
+      const y = point.y + liftOf(solid) * TILE_SIDE;
+      const c = (point.x / HALF_W + y / HALF_H) / 2;
+      const r = (y / HALF_H - point.x / HALF_W) / 2;
+      const at = plateLocal(solid.box, solid.spin, c, r);
+      // Later plates are drawn over earlier ones, so the last hit is on top.
+      if (Math.abs(at.u) <= 1 && Math.abs(at.v) <= 1) hit = { col: c, row: r };
+    }
+  }
+  return hit;
+}
+
 export function hoverBoards(plans: VillagePlan[], point: { x: number; y: number } | null) {
-  hovered = null;
-  if (!point) return;
+  hovered = boardUnder(plans, point);
+}
+
+/**
+ * Whether the mouse at world point `point` matters to the next frame: it
+ * is over a picture, or one is still hovered or easing back flat. If not,
+ * moving it changes nothing on screen and needs no redraw.
+ */
+export function hoverMatters(plans: VillagePlan[], point: { x: number; y: number }) {
+  return hovered !== null || tilts.size > 0 || boardUnder(plans, point) !== null;
+}
+
+/** The front-most picture within reach of world point `point`, and where on it. */
+function boardUnder(plans: VillagePlan[], point: { x: number; y: number } | null) {
+  let hit: { solid: Solid; u: number; v: number } | null = null;
+  if (!point) return hit;
   for (const plan of plans) {
     for (const { solid } of platesOf(plan)) {
       if (solid.kind !== "board") continue;
@@ -416,9 +512,10 @@ export function hoverBoards(plans: VillagePlan[], point: { x: number; y: number 
       }
       // Later plates are drawn over earlier ones, so the last hit is on top.
       const clamp = (n: number) => Math.max(-1, Math.min(1, n));
-      hovered = { solid, u: clamp(at.u), v: clamp(at.v) };
+      hit = { solid, u: clamp(at.u), v: clamp(at.v) };
     }
   }
+  return hit;
 }
 
 /** Eases every tilt towards the mouse. Returns whether any is still moving. */
@@ -535,6 +632,8 @@ export function drawVillageFloors(
   ctx: CanvasRenderingContext2D,
   plans: VillagePlan[],
   ink: VillageInk,
+  /** How shown a village's facts are, 0 to 1, by the line's `reveal` order. */
+  reveal: (plan: VillagePlan, line: number) => number = () => 0,
 ) {
   ctx.save();
   ctx.strokeStyle = ink.edge;
@@ -543,7 +642,18 @@ export function drawVillageFloors(
       if (item.kind === "slab") drawBox(ctx, item.box, fillFor(item.color, plan, ink));
     }
     for (const item of plan.flats) {
-      if (item.kind === "text") drawFloorText(ctx, item, plan, ink);
+      if (item.kind !== "text") continue;
+      if (item.reveal === undefined) {
+        drawFloorText(ctx, item, plan, ink);
+        continue;
+      }
+      // A fact fades in place. Hidden ones are skipped outright, so their
+      // sprites are only made once a village is first entered.
+      const shown = reveal(plan, item.reveal);
+      if (shown <= 0) continue;
+      ctx.globalAlpha = shown;
+      drawFloorText(ctx, item, plan, ink);
+      ctx.globalAlpha = 1;
     }
     drawShadows(ctx, shadowsOf(plan, ink));
   }

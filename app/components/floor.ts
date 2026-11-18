@@ -195,9 +195,11 @@ function addLoops(path: Path2D, loops: number[][], dy: number) {
 }
 
 /** The width of the repeating floor picture, in world pixels. */
-const PERIOD_W = 4 * HALF_W;
+const PERIOD_W = 8 * HALF_W;
 /** The height of the repeating floor picture, in world pixels. */
-const PERIOD_H = 4 * HALF_H;
+const PERIOD_H = 8 * HALF_H;
+/** How far each arm of a + reaches along the grid lines, in window pixels. */
+const CROSS_PX = 6;
 /** The pattern made last time, kept while the scale, zoom and colours hold. */
 let pattern: { key: string; fill: CanvasPattern } | null = null;
 
@@ -206,8 +208,8 @@ function floorPattern(
   ctx: CanvasRenderingContext2D,
   f: FloorFrame,
 ): CanvasPattern | string {
-  const { top, line } = f.colors;
-  const key = `${f.scale.toFixed(3)}|${f.zoom.toFixed(4)}|${top}|${line}`;
+  const { top, line, mark } = f.colors;
+  const key = `${f.scale.toFixed(3)}|${f.zoom.toFixed(4)}|${top}|${line}|${mark}`;
   if (pattern && pattern.key === key) return pattern.fill;
 
   const w = Math.max(1, Math.round(PERIOD_W * f.scale));
@@ -227,11 +229,11 @@ function floorPattern(
 
   // Each square drawn on the floor is GRID_TILES tiles a side, so the grid
   // reads at the zoomed-out home view. Squares start on even tiles, which
-  // the 4-tile period repeats cleanly.
+  // the 8-tile period repeats cleanly.
   const lines = new Path2D();
   const n = GRID_TILES;
-  for (let col = -4; col <= 6; col += n) {
-    for (let row = -4; row <= 6; row += n) {
+  for (let col = -8; col <= 16; col += n) {
+    for (let row = -8; row <= 16; row += n) {
       const x = (col - row) * HALF_W;
       const y = (col + row) * HALF_H;
       lines.moveTo(x, y);
@@ -243,6 +245,31 @@ function floorPattern(
   }
   p.strokeStyle = line;
   p.stroke(lines);
+
+  // A + in the middle of each 2x2 block of squares, its arms running
+  // along the grid lines. Those middles sit on every fourth tile, which is
+  // why the period is 8 tiles. The arms keep the same window size whatever
+  // the zoom. Middles just past the picture's edge are drawn too, so a +
+  // cut by the edge is finished by the copy beside it.
+  const arm = CROSS_PX / f.zoom;
+  const len = Math.hypot(HALF_W, HALF_H);
+  const ax = (HALF_W / len) * arm;
+  const ay = (HALF_H / len) * arm;
+  const crosses = new Path2D();
+  for (let col = -8; col <= 16; col += 2 * n) {
+    for (let row = -8; row <= 16; row += 2 * n) {
+      const x = (col - row) * HALF_W;
+      const y = (col + row) * HALF_H;
+      if (x < -arm || x > PERIOD_W + arm || y < -arm || y > PERIOD_H + arm)
+        continue;
+      crosses.moveTo(x - ax, y - ay);
+      crosses.lineTo(x + ax, y + ay);
+      crosses.moveTo(x + ax, y - ay);
+      crosses.lineTo(x - ax, y + ay);
+    }
+  }
+  p.strokeStyle = mark;
+  p.stroke(crosses);
 
   const fill = ctx.createPattern(canvas, "repeat");
   if (!fill) return top;

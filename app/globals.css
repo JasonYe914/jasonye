@@ -28,6 +28,10 @@
   /* The tile under the chicken: a step darker, with a crisp edge. */
   --tile-here: #ededed;
   --tile-here-edge: rgb(0 0 0 / 0.2);
+  /* The squares a walk will cross, shaded from far off to next to the
+     target. Kept as hex: the canvas blends between them. */
+  --route-far: #dbe4f7;
+  --route-near: #4c7bd9;
   --shadow: rgb(0 0 0 / 0.14);
   /* Under the floating landmarks: darker, since it is blurred wide. */
   --float-shadow: rgb(0 0 0 / 0.3);
@@ -44,7 +48,8 @@
   --chrome: rgb(255 255 255 / 0.94);
   --chrome-border: rgb(0 0 0 / 0.08);
   --chrome-shadow: 0 8px 28px rgb(0 0 0 / 0.08), 0 1px 2px rgb(0 0 0 / 0.06);
-  --muted: #737373;
+  /* #6b6b6b, not #737373: 4.9:1 on the page, above WCAG AA's 4.5:1. */
+  --muted: #6b6b6b;
   /* The projects gallery: white cards on the grey page, with an inset
      well for each picture and a soft grey for its buttons. */
   --card: #ffffff;
@@ -85,6 +90,8 @@
      instead, which also gives the chicken's shadow something to fall on. */
   --tile-here: #1f1f1f;
   --tile-here-edge: rgb(255 255 255 / 0.24);
+  --route-far: #18233a;
+  --route-near: #7096e1;
   --shadow: rgb(0 0 0 / 0.8);
   --float-shadow: rgb(0 0 0 / 0.95);
   /* A little lighter, so the letters glow on the dark floor. */
@@ -124,14 +131,14 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-fun);
+  --font-mono: var(--font-fun);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-fun), Arial, Helvetica, sans-serif;
 }
 
 /* A thin band of fog along each window edge, for new blocks to rise out of.
@@ -300,8 +307,8 @@ body {
     border-color 200ms ease-out;
 }
 
-/* Icons grow from the left edge, so a magnified one swells out to the
-   right of the bar. Their size is set inline as the pointer moves. */
+/* Icons grow from the bottom edge, so a magnified one swells out of the
+   top of the bar. Their size is set inline as the pointer moves. */
 .nav-item {
   color: var(--nav-icon);
   transition:
@@ -329,11 +336,12 @@ body {
   outline-offset: 2px;
 }
 
-/* The name label slides out to the right of an icon on hover or focus. */
+/* The name label rises above an icon on hover or focus. */
 .nav-tip {
   position: absolute;
-  left: 100%;
-  margin-left: 12px;
+  bottom: 100%;
+  left: 50%;
+  margin-bottom: 12px;
   padding: 4px 10px;
   border-radius: 999px;
   font-size: 12px;
@@ -344,7 +352,7 @@ body {
   background: var(--nav-tip-bg);
   box-shadow: 0 4px 14px rgb(0 0 0 / 0.16);
   opacity: 0;
-  transform: translateX(-4px);
+  transform: translate(-50%, 4px);
   transition:
     opacity 150ms ease-out,
     transform 150ms ease-out;
@@ -352,7 +360,7 @@ body {
 .nav-item:hover .nav-tip,
 .nav-item:focus-visible .nav-tip {
   opacity: 1;
-  transform: none;
+  transform: translate(-50%, 0);
 }
 
 /* The moon offers dark mode; the sun offers light mode back. */
@@ -428,7 +436,7 @@ body {
   gap: 12px;
   padding-top: 9px;
   border-top: 1px solid var(--chrome-border);
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-family: var(--font-fun), sans-serif;
   font-size: 10.5px;
   letter-spacing: 0.04em;
   color: var(--muted);
@@ -436,7 +444,7 @@ body {
 }
 .village-card kbd,
 .village-sheet kbd {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-family: var(--font-fun), sans-serif;
   font-size: 10px;
   padding: 0 5px;
   border: 1px solid var(--chrome-border);
@@ -501,7 +509,7 @@ body {
   color: var(--muted);
 }
 .village-sheet-meta {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-family: var(--font-fun), sans-serif;
   font-size: 11px !important;
 }
 .village-sheet-close {
@@ -542,7 +550,7 @@ body {
   border: 1px solid var(--chrome-border);
 }
 .village-sheet-numbers dd {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-family: var(--font-fun), sans-serif;
   font-size: 20px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -566,7 +574,7 @@ body {
   color: var(--muted);
 }
 .village-sheet-media.is-empty span {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-family: var(--font-fun), sans-serif;
   font-size: 11px;
   letter-spacing: 0.08em;
 }
@@ -587,7 +595,7 @@ body {
   gap: 6px;
 }
 .village-sheet-tools li {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-family: var(--font-fun), sans-serif;
   font-size: 11.5px;
   padding: 3px 8px;
   border-radius: 6px;
@@ -640,7 +648,7 @@ body {
 /* ---------- Projects gallery ---------- */
 
 /* Covers the world, below the dock (z 40) and the details sheet (z 45),
-   and leaves room on the left for the dock. */
+   and leaves room at the bottom for the dock. */
 .gallery {
   position: fixed;
   inset: 0;
@@ -648,7 +656,7 @@ body {
   overflow-y: auto;
   overscroll-behavior: contain;
   background: var(--background);
-  padding: 40px 24px 64px 96px;
+  padding: 40px 24px 128px;
   outline: none;
   animation: gallery-in 220ms ease-out;
 }
@@ -659,12 +667,12 @@ body {
 }
 @media (max-width: 699px) {
   .gallery {
-    padding: 24px 16px 48px 84px;
+    padding: 24px 16px 116px;
   }
 }
 .gallery-head,
 .gallery-grid {
-  max-width: 1240px;
+  max-width: 1600px;
   margin: 0 auto;
 }
 .gallery-head {
@@ -725,19 +733,19 @@ body {
   gap: 14px;
   min-width: 0;
 }
-.gallery-lane > .gallery-card:last-child {
+/* Any height a lane is short of is shared by all its cards, so no one
+   picture sits in a frame much taller than itself. */
+.gallery-lane > .gallery-card {
   flex: 1 1 auto;
 }
 .gallery-frame {
   position: relative;
   flex: 1 1 auto;
 }
-/* The picture's own shape, plus a strip along the foot for the name. */
+/* The picture's own shape. */
 .gallery-sizer {
-  box-sizing: content-box;
   width: 100%;
   max-height: 560px;
-  padding-bottom: 28px;
 }
 .gallery-frame > .gallery-media {
   position: absolute;
@@ -764,6 +772,51 @@ body {
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
   animation: village-rise 320ms ease-out both;
 }
+/* Hover: the card lifts (with `translate`, which the rise-in animation's
+   `transform` doesn't hold onto), its shadow deepens, the picture eases in
+   a little closer and the name darkens. */
+.gallery-card {
+  transition:
+    translate 220ms cubic-bezier(0.2, 0.7, 0.3, 1),
+    box-shadow 220ms ease-out,
+    border-color 220ms ease-out;
+}
+.gallery-card .gallery-media > * {
+  transition: transform 420ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.gallery-card-name {
+  transition: color 180ms ease-out;
+}
+@media (hover: hover) {
+  .gallery-card:hover {
+    translate: 0 -4px;
+    border-color: color-mix(in srgb, var(--foreground) 14%, var(--chrome-border));
+    box-shadow:
+      0 2px 4px rgb(0 0 0 / 0.04),
+      0 12px 28px -8px rgb(0 0 0 / 0.16);
+  }
+  .gallery-card:hover .gallery-media > * {
+    transform: scale(1.04);
+  }
+  .gallery-card:hover .gallery-card-name {
+    color: var(--foreground);
+  }
+  .gallery-card:hover .gallery-card-link svg {
+    transform: translateX(2px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gallery-card,
+  .gallery-card .gallery-media > * {
+    transition: none;
+  }
+  .gallery-card:hover {
+    translate: none;
+  }
+  .gallery-card:hover .gallery-media > * {
+    transform: none;
+  }
+}
 .gallery-lane > .gallery-card:nth-child(2) {
   animation-delay: 60ms;
 }
@@ -773,21 +826,15 @@ body {
 .gallery-lane > .gallery-card:nth-child(n + 4) {
   animation-delay: 180ms;
 }
-/* The name sits on the grid in the picture's bottom-left corner, so a
-   placeholder needn't repeat it, and the picture keeps clear of it. */
+/* The name sits under the picture, so a placeholder needn't repeat it. */
 .gallery-frame .ph-caption {
   display: none;
 }
-.gallery-frame > .gallery-media {
-  padding-bottom: 28px;
-}
-/* Set like the sketches' old captions: small mono capitals, muted. */
+
+/* Plain text under the picture: small mono capitals, muted. */
 .gallery-card-name {
-  position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: 10px;
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  margin: 2px 6px 0;
+  font-family: var(--font-fun), sans-serif;
   font-size: 10.5px;
   font-weight: 400;
   line-height: 1.3;
@@ -835,14 +882,84 @@ body {
   transform: translateX(2px);
 }
 
+/* The featured project: a wide card above the lanes, its picture on the
+   left (kept to a modest size) and what it is on the right. */
+.gallery-feature {
+  max-width: 1600px;
+  margin: 0 auto 14px;
+  display: grid;
+  grid-template-columns: minmax(0, 480px) minmax(0, 1fr);
+  gap: 6px;
+}
+.gallery-feature-media {
+  min-width: 0;
+}
+.gallery-feature-media > .gallery-media {
+  max-height: none;
+}
+.gallery-feature-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  padding: 20px 28px;
+}
+.gallery-feature-kicker {
+  font-family: var(--font-fun), sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.gallery-feature-name {
+  font-size: clamp(24px, 2.4vw, 32px);
+  font-weight: 650;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+}
+.gallery-feature-summary {
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--muted);
+  max-width: 42ch;
+}
+.gallery-feature-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.gallery-feature-tools li {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  background: var(--card-button);
+}
+.gallery-feature .gallery-card-link {
+  align-self: flex-start;
+  padding: 0 18px;
+  margin-top: 6px;
+}
+@media (max-width: 899px) {
+  .gallery-feature {
+    grid-template-columns: 1fr;
+  }
+  .gallery-feature-body {
+    padding: 14px 10px 6px;
+  }
+  .gallery-feature .gallery-card-link {
+    align-self: stretch;
+  }
+}
+
 /* ---------- A project's own page ---------- */
 
 .project {
-  max-width: 880px;
+  max-width: 1040px;
   width: 100%;
   margin: 0 auto;
   padding: 32px 24px 80px;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 32px;
   animation: gallery-in 260ms ease-out;
 }
@@ -880,7 +997,7 @@ body {
   stroke-linejoin: round;
 }
 .project-world {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-family: var(--font-fun), sans-serif;
   font-size: 11.5px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -890,7 +1007,7 @@ body {
   gap: 8px;
 }
 .project-meta {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-family: var(--font-fun), sans-serif;
   font-size: 11px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -902,24 +1019,147 @@ body {
   line-height: 1;
   letter-spacing: -0.035em;
 }
-.project-role {
-  font-size: 15px;
-  color: var(--muted);
-}
 .gallery-media.project-media {
   width: 100%;
   max-height: 70vh;
   border-radius: 14px;
 }
-.project-body {
-  display: grid;
-  gap: 32px;
-  max-width: 640px;
+/* A real picture keeps its own shape: when the height cap would bite, the
+   frame narrows to match (and centres), so the picture fills it whole
+   rather than being cropped. */
+.gallery-media.project-media[data-kind="image"] {
+  width: min(100%, calc(70vh * var(--aspect)));
+  justify-self: center;
 }
 .project-summary {
+  max-width: 640px;
+  margin-top: 6px;
   font-size: 19px;
   line-height: 1.5;
   letter-spacing: -0.01em;
+  color: var(--muted);
+}
+
+/* The write-up on the left, the facts in a sticky column on the right;
+   one column on narrow screens, facts first. */
+.project-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 56px;
+  align-items: start;
+}
+@media (max-width: 859px) {
+  .project-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 40px;
+  }
+  .project-facts {
+    order: -1;
+  }
+}
+.project-main {
+  display: grid;
+  gap: 44px;
+  max-width: 640px;
+}
+.project-section {
+  display: grid;
+  gap: 14px;
+}
+.project-section h2,
+.project-facts dt {
+  font-family: var(--font-fun), sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.project-section > p {
+  font-size: 16px;
+  line-height: 1.65;
+}
+.project-section > p.project-goal {
+  padding-left: 16px;
+  border-left: 2px solid var(--foreground);
+  font-size: 18px;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+}
+.project-steps {
+  display: grid;
+  gap: 18px;
+  counter-reset: step;
+}
+.project-steps li {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  column-gap: 12px;
+  row-gap: 2px;
+  counter-increment: step;
+}
+.project-steps li::before {
+  content: counter(step, decimal-leading-zero);
+  grid-row: span 2;
+  font-family: var(--font-fun), sans-serif;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.project-steps h3 {
+  font-size: 15px;
+  font-weight: 600;
+}
+.project-steps p {
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+/* The facts: a card of label and value rows. */
+.project-facts {
+  position: sticky;
+  top: 24px;
+  padding: 6px 20px;
+  border-radius: 16px;
+  background: var(--card);
+  border: 1px solid var(--chrome-border);
+}
+@media (max-width: 859px) {
+  .project-facts {
+    position: static;
+  }
+}
+.project-facts dl > div {
+  display: grid;
+  gap: 6px;
+  padding: 14px 0;
+}
+.project-facts dl > div + div {
+  border-top: 1px solid var(--chrome-border);
+}
+.project-facts dd {
+  font-size: 14.5px;
+  line-height: 1.45;
+}
+.project-stack {
+  display: grid;
+  gap: 10px;
+  margin-top: 2px;
+}
+.project-stack li {
+  display: grid;
+  gap: 2px;
+}
+.project-stack-name {
+  font-family: var(--font-fun), sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.project-stack-use {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--muted);
 }
 .project-numbers {
   display: grid;
@@ -933,7 +1173,7 @@ body {
   padding: 14px 16px 0 0;
 }
 .project-numbers dd {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-family: var(--font-fun), sans-serif;
   font-size: 28px;
   font-weight: 600;
   letter-spacing: -0.02em;
@@ -953,8 +1193,8 @@ body {
   padding-top: 14px;
   border-top: 1px solid var(--chrome-border);
 }
-.project-points h2 {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+.project-points h3 {
+  font-family: var(--font-fun), sans-serif;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.1em;
@@ -970,7 +1210,7 @@ body {
   gap: 6px;
 }
 .project-tools li {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-family: var(--font-fun), sans-serif;
   font-size: 12px;
   padding: 4px 10px;
   border: 1px solid var(--chrome-border);
@@ -987,9 +1227,21 @@ body {
   font-size: 15px;
 }
 .project-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   text-decoration: underline;
   text-underline-offset: 3px;
   text-decoration-thickness: 1px;
+}
+.project-links svg {
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .project-foot {
   padding-top: 20px;
@@ -1003,7 +1255,7 @@ body {
   font-weight: 550;
 }
 .project-foot span {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-family: var(--font-fun), sans-serif;
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.1em;
@@ -1062,21 +1314,21 @@ body {
 .gallery-media[data-kind="image"]::before {
   content: none;
 }
-/* The image itself fills the box edge to edge, as a cover. */
+/* A real image fills its frame edge to edge, on the card's white (so a
+   logo's see-through edges show white, not grey), and is never blurred or
+   letterboxed. Where the frame is a different shape, it crops a little. */
 .gallery-media[data-kind="image"] {
-  place-items: stretch;
+  background-color: var(--card);
 }
 .gallery-media .media-shot {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
-  min-height: 0;
   object-fit: cover;
   border-radius: inherit;
 }
-/* In a gallery card the name has its own strip under the picture. */
-.gallery-frame .media-shot {
-  border-radius: 11px 11px 0 0;
-}
+
 .gallery-media b {
   display: block;
   height: 6px;
@@ -1087,7 +1339,7 @@ body {
   position: absolute;
   left: 10px;
   bottom: 8px;
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-family: var(--font-fun), sans-serif;
   font-size: 9.5px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -1231,11 +1483,11 @@ body {
   background: var(--nav-hover);
 }
 
-/* The settings panel, beside the dock where its button is. */
+/* The settings panel, above the dock's right end, where its button is. */
 .settings-menu {
   position: absolute;
-  left: calc(100% + 12px);
-  bottom: 0;
+  right: 0;
+  bottom: calc(100% + 12px);
   width: 272px;
   padding: 10px;
   border-radius: 18px;
@@ -1257,7 +1509,7 @@ body {
 }
 .settings-label {
   padding: 0 6px;
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-family: var(--font-fun), sans-serif;
   font-size: 10px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -1353,7 +1605,7 @@ body {
 @keyframes settings-in {
   from {
     opacity: 0;
-    transform: translateX(-4px);
+    transform: translateY(4px);
   }
 }
 
@@ -1379,9 +1631,9 @@ body {
 }
 @media (max-width: 639px) {
   .guide {
-    left: 84px;
+    left: 12px;
     right: 12px;
-    bottom: 12px;
+    bottom: 108px;
     transform: none;
     flex-direction: column;
     animation-name: guide-in-flat, guide-bob;
@@ -1403,7 +1655,7 @@ body {
   height: 46px;
 }
 .guide-label {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-family: var(--font-fun), sans-serif;
   font-size: 10px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1431,7 +1683,7 @@ body {
   border: 1px solid var(--chrome-border);
   border-bottom-width: 2px;
   background: var(--background);
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-family: var(--font-fun), sans-serif;
   font-size: 10.5px;
   font-weight: 600;
   color: var(--foreground);
@@ -1499,15 +1751,15 @@ body {
 /* ---------- Contact ---------- */
 
 /* A soft veil over the world, with one card in the middle of it. Sits
-   above the gallery and the about page, below the dock, and leaves room on
-   the left for it. */
+   above the gallery and the about page, below the dock, and leaves room at
+   the bottom for it. */
 .contact-scrim {
   position: fixed;
   inset: 0;
   z-index: 39;
   display: grid;
   place-items: center;
-  padding: 24px 16px 24px 84px;
+  padding: 24px 16px 112px;
   background: color-mix(in srgb, var(--background) 55%, transparent);
   animation: gallery-in 200ms ease-out;
 }
@@ -1538,7 +1790,7 @@ body {
 }
 /* The friendly face of the name, with a short stripe of its hues. */
 .contact-head h2 {
-  font-family: var(--font-fun), var(--font-geist-sans), sans-serif;
+  font-family: var(--font-fun), sans-serif;
   font-size: 30px;
   font-weight: 600;
   line-height: 1.1;
@@ -1693,167 +1945,590 @@ body {
 /* ---------- About ---------- */
 
 /*
- * A magazine spread: one grid, with the words down the left and a mosaic
- * of pictures beside them, as tall as the words:
- *     words  iso     building building
- *     words  top     top      campus
- * The seams stagger between the rows, and each cell is close to its
- * picture's own shape, so little is cropped. The pictures sit in grey like
- * the world and take their colour on hover.
+ * Words only, on one white sheet: a hello, a row of numbers, four cards
+ * of what I work on, then the path beside the tools and a way to say hi.
+ * Sections rise in one after another as the page opens.
  */
-.about-sheet {
-  display: grid;
-  grid-template-columns: minmax(340px, 1.35fr) repeat(3, minmax(0, 1fr));
-  grid-template-rows: repeat(2, minmax(240px, 1fr));
-  grid-template-areas:
-    "t a b b"
-    "t c c d";
-  gap: 12px;
-  max-width: 1440px;
-  margin: 0 auto;
-  padding: 48px;
-  border-radius: 20px;
-  background: var(--card);
-  border: 1px solid var(--chrome-border);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
-  animation: village-rise 320ms cubic-bezier(0, 0, 0.2, 1) both;
-}
 .about .gallery-head {
-  max-width: 1440px;
+  max-width: 1120px;
   justify-content: flex-end;
   margin-bottom: 16px;
 }
+.about-sheet {
+  display: grid;
+  gap: 48px;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 56px;
+  border-radius: 24px;
+  background: var(--card);
+  border: 1px solid var(--chrome-border);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+}
+.about-sheet > * {
+  animation: village-rise 420ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+.about-sheet > :nth-child(2) {
+  animation-delay: 70ms;
+}
+.about-sheet > :nth-child(3) {
+  animation-delay: 140ms;
+}
+.about-sheet > :nth-child(4) {
+  animation-delay: 210ms;
+}
+@media (max-width: 699px) {
+  .about-sheet {
+    gap: 40px;
+    padding: 28px 20px;
+    border-radius: 18px;
+  }
+}
 
-/* The words: title, intro, then the path, down the left. */
-.about-words {
-  grid-area: t;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  min-width: 0;
-  padding-right: 28px;
+/* Hello. */
+.about-hero {
+  display: grid;
+  gap: 14px;
+  max-width: 720px;
+}
+.about-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 .about-title {
-  font-size: clamp(36px, 4vw, 56px);
-  font-weight: 300;
-  line-height: 0.95;
-  letter-spacing: -0.02em;
-  text-transform: uppercase;
+  font-size: clamp(44px, 7vw, 80px);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+  padding-right: 0.04em;
 }
-.about-lead {
-  max-width: 46ch;
-  font-size: 16px;
-  line-height: 1.6;
-  color: var(--muted);
+/* Only the name in colour: a quiet amber-to-orange, held still. */
+.about-name {
+  background: linear-gradient(in oklab 100deg, #f59e0b, #ea580c);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  padding-right: 0.04em;
 }
 
-/* The path: one line per stop, year first, newest at the top. Each line
-   is a button back into the world. */
-.about-label {
-  padding-top: 20px;
-  border-top: 1px solid var(--chrome-border);
-  font-size: 12.8px;
-  font-weight: 600;
-  line-height: 1.3;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+/* The title and its links: as wide as the title, the links sharing that
+   width in three equal buttons. */
+.about-namecard {
+  display: grid;
+  gap: 14px;
+  width: fit-content;
+  max-width: 100%;
+}
+.about-lead {
+  max-width: 54ch;
+  font-size: clamp(17px, 1.6vw, 20px);
+  line-height: 1.55;
   color: var(--muted);
 }
+.about-now {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 4px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+/* The dot (::after) over its soft ring (::before). The ring is a 16px
+   disc, just what a 4px box-shadow round the 8px dot would be, and it
+   breathes out to 22px (a 7px shadow) as it fades. Scaling and fading it
+   are left to the compositor, where an animated box-shadow would be
+   repainted on every frame for as long as the page is open. */
+.about-now-dot {
+  position: relative;
+  flex: none;
+  width: 8px;
+  height: 8px;
+  translate: 0 -1px;
+}
+.about-now-dot::before,
+.about-now-dot::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+}
+.about-now-dot::before {
+  inset: -4px;
+  background: color-mix(in srgb, #34c759 22%, transparent);
+  animation: about-pulse 2.4s ease-in-out infinite;
+}
+.about-now-dot::after {
+  inset: 0;
+  background: #34c759;
+}
+@keyframes about-pulse {
+  50% {
+    transform: scale(1.375);
+    opacity: 0;
+  }
+}
+
+/* Numbers: a ruled row of four. */
+.about-numbers {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px solid var(--foreground);
+}
+.about-numbers div {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px;
+  padding: 16px 16px 0 0;
+}
+.about-numbers div + div {
+  padding-left: 20px;
+  border-left: 1px solid var(--chrome-border);
+}
+.about-numbers dd {
+  font-size: clamp(32px, 4vw, 48px);
+  font-weight: 600;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+.about-numbers dt {
+  font-size: 13.5px;
+  color: var(--muted);
+}
+@media (max-width: 699px) {
+  .about-numbers {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: 18px;
+  }
+  .about-numbers div:nth-child(3) {
+    padding-left: 0;
+    border-left: none;
+  }
+}
+
+.about-block {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+/* What I work on: four cards, stacked under the tools. */
+.about-areas {
+  display: grid;
+  gap: 10px;
+}
+.about-areas li {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  padding: 18px 20px;
+  border-radius: 16px;
+  background: var(--card-well);
+  transition:
+    translate 220ms cubic-bezier(0.2, 0.7, 0.3, 1),
+    background-color 220ms ease-out;
+}
+.about-areas h4 {
+  font-size: 16.5px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.about-areas p {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+@media (hover: hover) {
+  .about-areas li:hover {
+    translate: 0 -3px;
+  }
+}
+
+/* The path beside the tools and the hello. */
+.about-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 56px;
+  align-items: start;
+}
+@media (max-width: 859px) {
+  .about-split {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 40px;
+  }
+}
+.about-side {
+  display: grid;
+  gap: 40px;
+}
+
+/* The path: a timeline down a thin line, each stop a dot in its village
+   colour, and a button back into the world. */
 .about-path {
+  position: relative;
+  display: grid;
   list-style: none;
-  margin: 8px 0 0;
+  margin: 0;
   padding: 0;
+}
+.about-path::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 18px;
+  bottom: 18px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--chrome-border);
+}
+.about-path li {
+  position: relative;
+  padding-left: 28px;
+}
+.about-path li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 18px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--dot);
+  box-shadow: 0 0 0 3px var(--card);
+  transition: scale 200ms ease-out;
 }
 .about-path button {
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) auto;
-  align-items: center;
+  grid-template-columns: minmax(0, 1fr) auto;
   column-gap: 12px;
-  width: calc(100% + 16px);
-  margin-left: -8px;
-  min-height: 38px;
-  padding: 6px 8px;
-  border-radius: 8px;
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
   text-align: left;
-  font-size: 15px;
-  line-height: 1.3;
   transition: background-color 150ms ease-out;
 }
-.about-path button:hover {
+.about-path-when {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.about-path strong {
+  grid-column: 1;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.about-path-role {
+  grid-column: 1;
+  font-size: 14px;
+  color: var(--muted);
+}
+.about-path-go {
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0;
+  translate: -4px 0;
+  transition:
+    opacity 150ms ease-out,
+    translate 150ms ease-out;
+}
+@media (max-width: 599px) {
+  .about-path-go {
+    display: none;
+  }
+}
+.about-path-go svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.about-path button:hover,
+.about-path button:focus-visible {
   background: var(--card-well);
+}
+.about-path button:hover .about-path-go,
+.about-path button:focus-visible .about-path-go {
+  opacity: 1;
+  translate: 0 0;
+}
+.about-path li:has(button:hover)::before {
+  scale: 1.3;
 }
 .about-path button:focus-visible {
   outline: 2px solid var(--foreground);
   outline-offset: 1px;
 }
-.about-path strong {
-  font-weight: 550;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+
+/* Tools: square badges in each tool's brand colours. */
+.about-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
-.about-year,
-.about-kind {
-  font-size: 12.8px;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+.about-tools li {
+  padding: 6px 10px;
+  border-radius: 3px;
+  background: var(--badge-bg);
+  color: var(--badge-fg);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08);
 }
 
-/* Sized only by their cells, so the words set the height of the rows. */
-.about-photo {
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-  contain: size;
-  object-fit: cover;
+/* The links under the hello: outlined buttons that fill on hover. */
+.about-links {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.about-links a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 14px;
   border-radius: 10px;
-  filter: grayscale(1);
-  transition: filter 300ms ease-out;
+  border: 1px solid var(--chrome-border);
+  font-size: 14px;
+  font-weight: 500;
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out,
+    border-color 150ms ease-out;
 }
-.about-photo:hover {
-  filter: none;
+.about-links a:hover {
+  border-color: transparent;
+  color: #1c1917;
+}
+.about-links a:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 2px;
+}
+@media (max-width: 479px) {
+  .about-links a {
+    padding: 0 8px;
+  }
+  .about-links svg {
+    display: none;
+  }
+}
+.about-links svg {
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
-/* Narrow: the words on top, then the pictures two by two, each cell
-   shaped by its picture. */
-@media (max-width: 899px) {
-  .about-sheet {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
-    grid-template-rows: auto;
-    grid-template-areas:
-      "t t"
-      "a b"
-      "c c"
-      "d d";
-    padding: 32px 24px 28px;
-  }
-  .about-words {
-    padding: 0 0 20px;
-  }
-  .about-photo {
-    height: auto;
-  }
-  /* The square engine sets the row; the building fills beside it. */
-  .about-photo[data-area="a"] {
-    aspect-ratio: 1;
-  }
-  .about-photo[data-area="b"] {
-    height: 100%;
-  }
-  .about-photo[data-area="c"] {
-    aspect-ratio: 1.54;
-  }
-  .about-photo[data-area="d"] {
-    aspect-ratio: 1.67;
-  }
-}
 @media (prefers-reduced-motion: reduce) {
-  .about-sheet {
+  .about-sheet > *,
+  .about-now-dot::before {
     animation: none;
   }
-  .about-photo,
-  .about-path button {
+  .about-areas li,
+  .about-path li::before,
+  .about-path button,
+  .about-path-go {
     transition: none;
+  }
+}
+
+/* ---------- Pointer glow ---------- */
+
+/*
+ * On hover, a yellow-to-orange gradient fills the element. It points
+ * away from the side the pointer came in from (--glow-angle, set on
+ * entry), its colours slide with the pointer, and a soft light sits under
+ * the pointer (--glow-x, --glow-y, set as it moves). See GLOW in
+ * AboutPanel.tsx.
+ */
+/* Registered so they can be eased: the colours and the light trail the
+   pointer and glide into place rather than snapping to it. */
+@property --glow-x {
+  syntax: "<percentage>";
+  inherits: true;
+  initial-value: 50%;
+}
+@property --glow-y {
+  syntax: "<percentage>";
+  inherits: true;
+  initial-value: 50%;
+}
+.glow {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  --glow-angle: 135deg;
+  transition:
+    --glow-x 550ms cubic-bezier(0.2, 0.7, 0.3, 1),
+    --glow-y 550ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.glow::before,
+.glow::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 400ms ease-out;
+}
+.glow::before {
+  /* Neighbouring hues, blended in OKLab so they run evenly into each
+     other without greying in between. */
+  background: linear-gradient(
+    in oklab var(--glow-angle),
+    #fde047 0%,
+    #fbbf24 35%,
+    #fb923c 70%,
+    #f97316 100%
+  );
+  background-size: 160% 160%;
+  background-position: var(--glow-x) var(--glow-y);
+}
+.glow::after {
+  background: radial-gradient(
+    circle at var(--glow-x) var(--glow-y),
+    rgb(255 255 255 / 0.28),
+    transparent 55%
+  );
+}
+@media (hover: hover) {
+  .glow:hover::before,
+  .glow:hover::after {
+    opacity: 1;
+  }
+  .about-areas li.glow:hover,
+  .about-areas li.glow:hover p,
+  .about-links a.glow:hover {
+    /* Dark ink: white would wash out on the yellow. */
+    color: #1c1917;
+  }
+  .about-areas li.glow p {
+    transition: color 200ms ease-out;
+  }
+}
+/* The cards and links set their own transitions; these keep the easing
+   alongside them. */
+.about-areas li.glow {
+  transition:
+    translate 220ms cubic-bezier(0.2, 0.7, 0.3, 1),
+    --glow-x 550ms cubic-bezier(0.2, 0.7, 0.3, 1),
+    --glow-y 550ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.about-links a.glow {
+  transition:
+    color 150ms ease-out,
+    border-color 150ms ease-out,
+    --glow-x 550ms cubic-bezier(0.2, 0.7, 0.3, 1),
+    --glow-y 550ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .glow,
+  .about-areas li.glow,
+  .about-links a.glow {
+    transition: none;
+  }
+}
+
+/* ---------- Headings ---------- */
+
+/* Fredoka's round letters crowd at tight tracking, so the big headings
+   are set a little looser than the old sans. */
+.project-head h1,
+.gallery-head h2,
+.gallery-feature-name,
+.village-sheet-head h2 {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* A visible focus ring for anything reached by keyboard that has no ring
+   of its own. :where keeps it weaker than every specific rule above. */
+:where(a, button, [role="button"], [role="switch"], input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 2px;
+}
+
+/* The small print. On the world it sits at the bottom middle, between the
+   village card and the minimap, under every panel. */
+.site-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0 0.5em;
+  padding: 24px 16px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+  text-align: center;
+}
+.site-foot-world {
+  position: fixed;
+  left: 50%;
+  bottom: 8px;
+  z-index: 20;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 32px);
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  background: color-mix(in srgb, var(--background) 85%, transparent);
+}
+@media (max-width: 639px) {
+  .site-foot-world {
+    bottom: 8px;
+    font-size: 10px;
+  }
+}
+
+/* On narrow screens the dock spans most of the bottom, so the minimap
+   sits above it. */
+@media (max-width: 699px) {
+  .world-map {
+    bottom: 112px;
+  }
+}
+
+/* ---------- Clock ---------- */
+
+/* The local time, top right, over the world and under the gallery, the
+   about page and the details sheet: small grey monospace text, no box. */
+.clock {
+  position: fixed;
+  top: 18px;
+  right: 20px;
+  z-index: 30;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, "Courier New", monospace;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  pointer-events: none;
+}
+@media (max-width: 639px) {
+  .clock {
+    top: 12px;
+    right: 14px;
+    font-size: 11px;
   }
 }

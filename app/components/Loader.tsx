@@ -121,7 +121,25 @@ type Tile = {
   lettered: boolean;
   /** A lettered block, drawn once and reused while it falls. */
   block?: HTMLCanvasElement | null;
+  /** Set once it is in place for good and added to the settled paths. */
+  flushed?: boolean;
 };
+
+/**
+ * Everything already in place, as a few big paths. Blocks only ever come
+ * to rest, never leave it, so each is added once as it lands rather than
+ * every path being rebuilt from every block on every frame.
+ */
+type Flush = { sides: Path2D; tops: Path2D; name: Path2D; grid: Path2D };
+
+function emptyFlush(): Flush {
+  return {
+    sides: new Path2D(),
+    tops: new Path2D(),
+    name: new Path2D(),
+    grid: new Path2D(),
+  };
+}
 
 /** Blank space round a block's picture, so its edges are not clipped. */
 const BLOCK_PAD = 1;
@@ -430,6 +448,7 @@ function startLoader(canvas: HTMLCanvasElement, onLanded: () => void) {
   let width = 0;
   let height = 0;
   let tiles: Tile[] = [];
+  let flush = emptyFlush();
   let settleMs = 0;
   let chickenAt = 0;
   let chickenDrop = 0;
@@ -485,18 +504,15 @@ function startLoader(canvas: HTMLCanvasElement, onLanded: () => void) {
 
     // Blocks in place all look alike, so they go down as a few big paths:
     // the sides peeking out from under each block, the tops, then the name.
-    const flushSides = new Path2D();
-    const flushTops = new Path2D();
-    const flushName = new Path2D();
-    const flushGrid = new Path2D();
     const moving: Tile[] = [];
     for (const tile of tiles) {
-      if (elapsed <= tile.appear) continue;
+      if (tile.flushed || elapsed <= tile.appear) continue;
       const since = sinceSettle - tile.release;
       if (tile.lettered) {
         // A landed piece is painted straight onto the floor below it.
         if (since >= tile.duration) {
-          diamond(flushName, tile.x, tile.y);
+          diamond(flush.name, tile.x, tile.y);
+          tile.flushed = true;
         } else if (since > 0) {
           moving.push(tile);
         }
@@ -504,25 +520,26 @@ function startLoader(canvas: HTMLCanvasElement, onLanded: () => void) {
       }
       const settled = tile.drop === 0 || since >= tile.duration;
       if (elapsed >= tile.appear + POP_MS && settled) {
+        tile.flushed = true;
         if (tile.y < top || tile.y > bottom) continue;
-        diamond(flushSides, tile.x, tile.y + LIP);
-        diamond(flushTops, tile.x, tile.y);
-        gridSquare(flushGrid, tile);
+        diamond(flush.sides, tile.x, tile.y + LIP);
+        diamond(flush.tops, tile.x, tile.y);
+        gridSquare(flush.grid, tile);
       } else {
         moving.push(tile);
       }
     }
 
     ctx.fillStyle = colors.side;
-    ctx.fill(flushSides);
+    ctx.fill(flush.sides);
     ctx.fillStyle = colors.top;
-    ctx.fill(flushTops);
+    ctx.fill(flush.tops);
     // Settled floor is ruled in the world's bigger squares, so nothing
     // changes when the intro hands over.
-    ctx.stroke(flushGrid);
+    ctx.stroke(flush.grid);
     // The name, in one piece, as World paints it.
     ctx.save();
-    ctx.clip(flushName);
+    ctx.clip(flush.name);
     drawName(ctx, colors);
     ctx.restore();
 
@@ -692,6 +709,8 @@ function startLoader(canvas: HTMLCanvasElement, onLanded: () => void) {
       height,
       nameCells,
     ));
+    // New blocks for the new size: they settle into fresh paths.
+    flush = emptyFlush();
     schedule();
   }
 

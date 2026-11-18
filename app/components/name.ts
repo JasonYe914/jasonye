@@ -142,15 +142,12 @@ export function fitZoom(width: number, height: number) {
 }
 
 /*
- * Room for the home view once the intro is over: wide enough to take in
- * the villages round the name, so a first-time visitor sees there is
- * somewhere to go. Every village shows at least in part at this zoom.
+ * Room for the home view once the intro is over: a little wider than the
+ * intro's, so the view eases out a touch and hints at the floor beyond
+ * the name, without pulling all the way back to take in every village.
  */
-// Widened a touch (OVERVIEW_ROOM) so every landmark, spaced out, is still
-// fully in view at the start, clear of the dock and the minimap.
-const OVERVIEW_ROOM = 1 / 0.91;
-const OVERVIEW_WIDTH = (right - left) * 3.05 * OVERVIEW_ROOM;
-const OVERVIEW_HEIGHT = (bottom - top) * 3.4 * OVERVIEW_ROOM;
+const OVERVIEW_WIDTH = (right - left) * 2;
+const OVERVIEW_HEIGHT = (bottom - top) * 2.25;
 
 /** Scale at which the name and the villages round it fit the window. */
 export function overviewZoom(width: number, height: number) {
