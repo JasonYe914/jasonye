@@ -1,3 +1,4 @@
+import { GLYPH_H, blockTextWidth } from "./blockLetters";
 import { PLATE } from "./float";
 import { sortBackToFront, type Box } from "./iso";
 import { LOT, VILLAGES, lotOrigin, type Board, type Village } from "./villages";
@@ -74,6 +75,12 @@ export type Flat =
        * instead of down-right along the columns.
        */
       turned?: boolean;
+      /**
+       * Set in the name's blocky letters (blockLetters.ts) rather than the
+       * rounded face; `size` is then how tall the letters stand, and
+       * (col, row) their bottom-left corner.
+       */
+      block?: boolean;
     };
 
 type Area = { c0: number; c1: number; r0: number; r1: number };
@@ -176,7 +183,11 @@ const HERO_FRONT = 8.5;
 /** How far in from the lot's edge anything may reach. */
 const MARGIN = 0.5;
 
-/** The size of the village's name on the floor. */
+/**
+ * How tall the village's heading stands on the floor, in tiles. It is set in
+ * the name's blocky letters, and shrinks only if it would not fit across
+ * the lot.
+ */
 const NAME_SIZE = 0.8;
 /**
  * How each of a village's facts is painted, in order: its size and ink.
@@ -237,13 +248,6 @@ function boardSize(board: Board | undefined) {
   }
 }
 
-/** The floor a line of text covers, from its start (c, r) on its baseline. */
-function textArea(c: number, r: number, text: string, size: number, turned: boolean, glyph = GLYPH): Area {
-  const w = textWidth(text, size, glyph);
-  return turned
-    ? { c0: c - size, c1: c + 0.45 * size, r0: r - w, r1: r + 0.1 * size }
-    : { c0: c - 0.1 * size, c1: c + w, r0: r - size, r1: r + 0.45 * size };
-}
 
 function overlaps(a: Area, b: Area, gap: number) {
   return a.c0 < b.c1 + gap && b.c0 < a.c1 + gap && a.r0 < b.r1 + gap && b.r0 < a.r1 + gap;
@@ -297,7 +301,9 @@ function placeFacts(
     const lo = MARGIN - spill;
     const hi = LOT - MARGIN;
     // This search runs for every village as the page loads, so it is kept
-    // lean: each line's area (as textArea works it out) splits into a part
+    // lean. The floor a line covers, from its start (c, r) on its baseline,
+    // runs from c - 0.1 size to c + its width across, and from r - size to
+    // r + 0.45 size down. Each line's area splits into a part
     // that moves only with c and a part that moves only with r, worked out
     // once per column and once per row rather than for every spot. The
     // spots are still tried in the same order with the same arithmetic, so
@@ -392,7 +398,8 @@ export function planVillage(village: Village): VillagePlan {
     color: InkKey,
     reveal?: number,
     turned?: boolean,
-  ) => flats.push({ kind: "text", col: c + oc, row: r + or, z: 0, size, text, color, reveal, turned });
+    block?: boolean,
+  ) => flats.push({ kind: "text", col: c + oc, row: r + or, z: 0, size, text, color, reveal, turned, block });
   const board = (b: Board, area: Area, lift: number, turned: boolean, spin?: number) =>
     solids.push({
       kind: "board",
@@ -482,19 +489,23 @@ export function planVillage(village: Village): VillagePlan {
 
   // The name, in front of the main image, lined up under its front-left
   // corner. The rest is in the details (E).
+  // Set in the name's blocky letters, so its floor is worked out from them.
   const name = village.heading ?? village.short;
-  const nameW = textWidth(name, NAME_SIZE);
+  const units = blockTextWidth(name);
+  const nameSize = units > 0 ? Math.min(NAME_SIZE, ((LOT - 2 * MARGIN) / units) * GLYPH_H) : NAME_SIZE;
+  const nameW = (units / GLYPH_H) * nameSize;
   const textCol = Math.max(MARGIN, Math.min(hero.c0, LOT - MARGIN - nameW));
   const top = hero.r1 + 1.1;
-  const nameRow = top + NAME_SIZE;
-  write(textCol, nameRow, name, NAME_SIZE, "accent");
-  const nameArea = textArea(textCol, nameRow, name, NAME_SIZE, false);
+  const nameRow = top + nameSize;
+  write(textCol, nameRow, name, nameSize, "accent", undefined, false, true);
+  // The letters stand from `top` down to their baseline, with nothing below.
+  const nameArea: Area = { c0: textCol, c1: textCol + nameW, r0: top, r1: nameRow };
   spot(
     "intro",
     "intro",
     village.name,
     `${village.role} · ${village.dates} · ${village.place}`,
-    { c0: textCol, c1: textCol + nameW, r0: top, r1: nameRow + NAME_SIZE * 0.9 + 0.3 },
+    { c0: textCol, c1: textCol + nameW, r0: top, r1: nameRow + nameSize * 0.9 + 0.3 },
     0.6,
   );
 

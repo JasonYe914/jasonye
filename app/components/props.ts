@@ -1,4 +1,5 @@
 import { HALF_H, HALF_W, TILE_SIDE, project } from "./iso";
+import { pixelRatio } from "./pixelRatio";
 import { OUTLINE, box, drawBox, grayscale, onFace, type Part } from "./paint";
 
 /**
@@ -135,7 +136,7 @@ export function drawProp(
   scale: number,
 ) {
   if (grow <= 0) return;
-  const dpr = window.devicePixelRatio || 1;
+  const dpr = pixelRatio();
   const bucket = 2 ** (Math.ceil(Math.log2(scale) * 4) / 4);
   const sprite = spriteFor(prop.kind, bucket, dpr, shadow);
   const origin = project(prop.col, prop.row);

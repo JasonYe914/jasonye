@@ -9,6 +9,7 @@ import {
   plateLocal,
   tooSmall,
 } from "./float";
+import { GLYPH_H, blockTextWidth, paintBlockText } from "./blockLetters";
 import { grayscale } from "./paint";
 import { HALF_H, HALF_W, TILE_SIDE, project, sortBackToFront, type Box } from "./iso";
 import { SIGNIN_SIZE, drawSignInDemo } from "./signinDemo";
@@ -208,6 +209,20 @@ function drawFloorText(
   // Turned text reads up-right, along the rows, with its letters standing
   // towards the back.
   if (item.turned) ctx.rotate(-Math.PI / 2);
+  if (item.block) {
+    // The heading, in the name's blocky letters: `size` tall, standing on
+    // the row, drawn once into a sprite like the words.
+    const k = size / GLYPH_H;
+    const pad = 0.05 * size;
+    const w = blockTextWidth(item.text) * k;
+    stamp(ctx, `vblock|${item.text}|${size}|${fill}`, -pad, -size - pad, w + 2 * pad, size + 2 * pad, (p) => {
+      p.translate(0, -size);
+      p.scale(k, k);
+      paintBlockText(p, item.text, fill);
+    });
+    ctx.restore();
+    return;
+  }
   stamp(ctx, `vtext|${item.text}|${size}|${fill}|${font}|${fontsReady}`, -0.1 * size, -size, width, 1.45 * size, (p) => {
     // Fonts misbehave at sizes under a pixel, so the text is set large
     // and scaled down to tile units.

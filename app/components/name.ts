@@ -1,19 +1,12 @@
+import { GLYPH_H, GLYPH_W, SPACING, addBlockText } from "./blockLetters";
 import { HALF_H, HALF_W, project } from "./iso";
 
-/** The name, one string per line. Lines run down-right along the columns. */
+/**
+ * The name, one string per line. Lines run down-right along the columns.
+ * The letters (blockLetters.ts) are set one unit per tile, so each is
+ * GLYPH_W tiles wide and GLYPH_H tall, with SPACING tiles between them.
+ */
 const LINES = ["JASON", "YE"];
-
-/** Every letter fills a box this many tiles wide and tall. */
-const GLYPH_W = 3;
-const GLYPH_H = 4;
-/** Empty tiles between letters, and between lines. */
-const SPACING = 1;
-/** Width of the thin cuts that stand in for a letter's counters, in tiles. */
-const SLIT = 0.3;
-/** Radius of the big curves: half a letter, so a rounded end is a semicircle. */
-const ROUND = GLYPH_W / 2;
-/** How far a cut that opens on a letter's edge overshoots that edge. */
-const OVERSHOOT = 0.5;
 
 /**
  * Grid position of the name's top-left corner. Chosen so the chicken, which
@@ -21,77 +14,6 @@ const OVERSHOOT = 0.5;
  * line.
  */
 const ORIGIN = { col: -13, row: -7 };
-
-/**
- * Draws one letter with its top-left corner at (x, y) in grid space: the
- * black shape goes into `solid`, and the cuts taken out of it into `cuts`.
- * Cuts must not touch or overlap one another.
- */
-type Glyph = (solid: Path2D, cuts: Path2D, x: number, y: number) => void;
-
-/** A vertical cut centred on the letter, from y0 down to y1. */
-function slitDown(cuts: Path2D, x: number, y0: number, y1: number) {
-  cuts.roundRect(x + (GLYPH_W - SLIT) / 2, y0, SLIT, y1 - y0, SLIT / 2);
-}
-
-/** A horizontal cut from x0 across to x1, with its top edge at y. */
-function slitAcross(cuts: Path2D, x0: number, x1: number, y: number) {
-  cuts.roundRect(x0, y, x1 - x0, SLIT, SLIT / 2);
-}
-
-// Where the two horizontal cuts sit so they split a letter into equal thirds.
-const ARM = (GLYPH_H - 2 * SLIT) / 3;
-const UPPER_CUT = ARM;
-const LOWER_CUT = 2 * ARM + SLIT;
-
-const GLYPHS: Record<string, Glyph> = {
-  // A bowl with its left arm cut short.
-  J(solid, cuts, x, y) {
-    solid.roundRect(x, y, GLYPH_W, GLYPH_H, [0, 0, ROUND, ROUND]);
-    const slitLeft = x + (GLYPH_W - SLIT) / 2;
-    const slitRight = slitLeft + SLIT;
-    const armTop = y + 2;
-    const slitEnd = y + 2.7;
-    cuts.moveTo(x - OVERSHOOT, y - OVERSHOOT);
-    cuts.lineTo(slitRight, y - OVERSHOOT);
-    cuts.lineTo(slitRight, slitEnd - SLIT / 2);
-    cuts.arc(x + GLYPH_W / 2, slitEnd - SLIT / 2, SLIT / 2, 0, Math.PI);
-    cuts.lineTo(slitLeft, armTop);
-    cuts.lineTo(x - OVERSHOOT, armTop);
-    cuts.closePath();
-  },
-  // An arch whose cut is interrupted by the crossbar.
-  A(solid, cuts, x, y) {
-    solid.roundRect(x, y, GLYPH_W, GLYPH_H, [ROUND, ROUND, 0, 0]);
-    slitDown(cuts, x, y + 1.4, y + 2.3);
-    slitDown(cuts, x, y + 2.9, y + GLYPH_H + OVERSHOOT);
-  },
-  S(solid, cuts, x, y) {
-    solid.roundRect(x, y, GLYPH_W, GLYPH_H, ROUND);
-    slitAcross(cuts, x + 1, x + GLYPH_W + OVERSHOOT, y + UPPER_CUT);
-    slitAcross(cuts, x - OVERSHOOT, x + GLYPH_W - 1, y + LOWER_CUT);
-  },
-  O(solid, cuts, x, y) {
-    solid.roundRect(x, y, GLYPH_W, GLYPH_H, ROUND);
-    slitDown(cuts, x, y + 1.4, y + GLYPH_H - 1.4);
-  },
-  N(solid, cuts, x, y) {
-    solid.roundRect(x, y, GLYPH_W, GLYPH_H, [0, ROUND, 0, 0]);
-    slitDown(cuts, x, y + 1.5, y + GLYPH_H + OVERSHOOT);
-  },
-  // A bowl standing on a stem.
-  Y(solid, cuts, x, y) {
-    const stem = (GLYPH_W - SLIT) / 2;
-    solid.roundRect(x, y, GLYPH_W, 2.7, [0, 0, ROUND, ROUND]);
-    solid.rect(x + (GLYPH_W - stem) / 2, y + 2, stem, GLYPH_H - 2);
-    slitDown(cuts, x, y - OVERSHOOT, y + 1.5);
-  },
-  E(solid, cuts, x, y) {
-    solid.roundRect(x, y, GLYPH_W, GLYPH_H, [ROUND, 0, 0, ROUND]);
-    slitAcross(cuts, x + 1.2, x + GLYPH_W + OVERSHOOT, y + UPPER_CUT);
-    slitAcross(cuts, x + 1.2, x + GLYPH_W + OVERSHOOT, y + LOWER_CUT);
-  },
-};
 
 /** Grid-space box of each line of the name. */
 const LINE_BOXES = LINES.map((text, index) => {
@@ -210,14 +132,7 @@ function buildShapes() {
     NAME_TILES.r1 - NAME_TILES.r0,
   );
   LINES.forEach((text, line) => {
-    [...text].forEach((letter, index) => {
-      GLYPHS[letter](
-        solid,
-        cuts,
-        ORIGIN.col + index * (GLYPH_W + SPACING),
-        LINE_BOXES[line].r0,
-      );
-    });
+    addBlockText(solid, cuts, text, ORIGIN.col, LINE_BOXES[line].r0);
   });
   return { solid, cuts };
 }

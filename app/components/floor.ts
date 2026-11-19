@@ -6,6 +6,12 @@
  * because Skia rasterises a path with thousands of separate shapes on the
  * CPU every frame. The paths leave their loops open, because Chrome's
  * closePath slows down with path length and a fill closes them anyway.
+ *
+ * The floor always covers the whole view (see worldEdge.ts), so the
+ * settled floor is the view with holes where blocks are still rising or
+ * waiting to. It is drawn that way: one fill of the view, less the outline
+ * of the few unsettled blocks, rather than an outline traced round the
+ * thousands of settled ones. Only the unsettled blocks are ever walked.
  */
 
 import { GRID_TILES, HALF_H, HALF_W } from "./iso";
@@ -29,6 +35,8 @@ export type Tile = {
 /** Everything a floor draw needs to know about this frame. */
 export type FloorFrame = {
   now: number;
+  /** The area the view shows, in world pixels; all of it is over blocks. */
+  view: { x0: number; x1: number; y0: number; y1: number };
   riseMs: number;
   risePx: number;
   lip: number;
@@ -39,15 +47,17 @@ export type FloorFrame = {
 };
 
 /**
- * The cached paths of the settled floor, rebuilt when its version moves,
- * and the tiles still rising, kept apart so a frame only looks at those.
+ * The tiles not yet settled (rising, or waiting to), and what is cached
+ * from them: the outline of the holes they leave in the settled floor, and
+ * the sides of the settled blocks just behind them. Rebuilt when the
+ * version moves, which is whenever the unsettled tiles change.
  */
 export type FloorState = {
   version: number;
   built: number;
-  /** When the settled paths were last rebuilt. */
+  /** When the cache was last rebuilt. */
   builtAt: number;
-  tops: Path2D | null;
+  holes: number[][];
   sides: Path2D | null;
   rising: Set<Tile>;
 };
@@ -82,6 +92,13 @@ export function riseLevel(born: number, now: number, riseMs: number) {
   if (riseMs <= 0 || now - born >= riseMs) return SETTLED;
   return Math.round(easeOutCubic((now - born) / riseMs) * RISE_LEVELS);
 }
+
+/** The tiles a tile is in front of: one of their sides faces it. */
+const BEHIND: [number, number][] = [
+  [-1, 0],
+  [0, -1],
+  [-1, -1],
+];
 
 /** Whether a tile's side can be seen: any of the tiles in front is not yet settled. */
 export function showsSide(tiles: Map<number, Tile>, col: number, row: number) {
@@ -157,7 +174,7 @@ export function createFloor(): FloorState {
     version: 0,
     built: -1,
     builtAt: -Infinity,
-    tops: null,
+    holes: [],
     sides: null,
     rising: new Set(),
   };
@@ -165,12 +182,14 @@ export function createFloor(): FloorState {
 
 /** Registers a tile just added to the map; call it for every new tile. */
 export function floorAdded(floor: FloorState, tile: Tile) {
-  if (!tile.settled) floor.rising.add(tile);
+  if (tile.settled) return;
+  floor.rising.add(tile);
+  floor.version++;
 }
 
 /** Tells the cache a tile was dropped from the map. */
 export function floorDropped(floor: FloorState, tile: Tile) {
-  floor.rising.delete(tile);
+  if (floor.rising.delete(tile)) floor.version++;
 }
 
 /** Tells the cache its tiles changed; call it after dropping tiles. */
@@ -331,17 +350,26 @@ export function drawFloor(
     ctx.restore();
   }
 
-  if (floor.built !== floor.version || !floor.tops || !floor.sides) {
-    const settled: Tile[] = [];
-    for (const tile of tiles.values()) if (tile.settled) settled.push(tile);
-    const isSettled = (c: number, r: number) =>
-      tiles.get(tileKey(c, r))?.settled === true;
-    const edge = settled.filter((t) => showsSide(tiles, t.col, t.row));
-    const edgeKeys = new Set(edge.map((t) => tileKey(t.col, t.row)));
-    floor.tops = addLoops(new Path2D(), traceOutline(settled, isSettled), 0);
+  if (floor.built !== floor.version || !floor.sides) {
+    // The holes: the outline of every tile not yet settled.
+    const unsettled = [...floor.rising];
+    const keys = new Set(unsettled.map((t) => tileKey(t.col, t.row)));
+    floor.holes = traceOutline(unsettled, (c, r) => keys.has(tileKey(c, r)));
+    // A settled block's side shows where a tile in front of it is not
+    // settled: so the sides belong to the settled blocks just behind the
+    // unsettled ones. (Past the edge of the blocks there are none in front
+    // either, but that edge is always out of view.)
+    const edge = new Map<number, Tile>();
+    for (const t of unsettled) {
+      for (const [dc, dr] of BEHIND) {
+        const key = tileKey(t.col + dc, t.row + dr);
+        const back = tiles.get(key);
+        if (back?.settled) edge.set(key, back);
+      }
+    }
     floor.sides = addLoops(
       new Path2D(),
-      traceOutline(edge, (c, r) => edgeKeys.has(tileKey(c, r))),
+      traceOutline(edge.values(), (c, r) => edge.has(tileKey(c, r))),
       f.lip,
     );
     floor.built = floor.version;
@@ -351,7 +379,16 @@ export function drawFloor(
   ctx.fillStyle = f.colors.side;
   ctx.fill(floor.sides);
   ctx.fillStyle = fill;
-  ctx.fill(floor.tops);
+  const { x0, x1, y0, y1 } = f.view;
+  if (floor.holes.length === 0) {
+    ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+  } else {
+    // The view, less the holes: with even-odd, a hole's inside is left
+    // empty and a settled island inside a hole is filled again.
+    const tops = new Path2D();
+    tops.rect(x0, y0, x1 - x0, y1 - y0);
+    ctx.fill(addLoops(tops, floor.holes, 0), "evenodd");
+  }
   ctx.restore();
   return rising;
 }

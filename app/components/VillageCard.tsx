@@ -80,7 +80,7 @@ function Sheet({ id }: { id: string }) {
       {village.boards.map((board) =>
         board.src ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img key={board.caption} src={board.src} alt={board.alt} className="village-sheet-media" />
+          <img key={board.caption} src={board.src} alt={board.alt} className="village-sheet-media" loading="lazy" decoding="async" />
         ) : (
           <div key={board.caption} className="village-sheet-media is-empty">
             <span>{board.caption}</span>
@@ -110,7 +110,7 @@ function Sheet({ id }: { id: string }) {
       {village.links && village.links.length > 0 && (
         <p className="village-sheet-links">
           {village.links.map((link) => (
-            <a key={link.href} href={link.href} target="_blank" rel="noreferrer">
+            <a key={link.href} href={link.href} target="_blank" rel="noopener noreferrer">
               {link.label}
             </a>
           ))}

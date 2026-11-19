@@ -3,6 +3,7 @@ import { Fredoka } from "next/font/google";
 import { InlineScript } from "./components/InlineScript";
 import { THEME_SCRIPT } from "./components/theme";
 import "./globals.css";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "./site";
 
 /**
  * Rounded and friendly, like the name's letters and the words on the
@@ -14,8 +15,17 @@ const fredoka = Fredoka({
 });
 
 export const metadata: Metadata = {
-  title: "Portfolio",
-  description: "Personal portfolio",
+  metadataBase: new URL(SITE_URL),
+  title: SITE_NAME,
+  description: SITE_DESCRIPTION,
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+    url: "/",
+  },
+  twitter: { card: "summary", title: SITE_NAME, description: SITE_DESCRIPTION },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

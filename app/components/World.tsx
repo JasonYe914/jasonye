@@ -27,6 +27,7 @@ import { INTRO_LANDED_EVENT, drawKeyHints } from "./keyHints";
 import { drawMinimap, mapFrame, mapToWorld, type MapFrame } from "./minimap";
 import { HOME, NAME_TILES, drawName, fitZoom, overviewZoom } from "./name";
 import { blockedAt } from "./obstacles";
+import { pixelRatio } from "./pixelRatio";
 import { clampToWorld, inFloor, minZoomToFill } from "./worldEdge";
 import {
   drawMini,
@@ -72,7 +73,7 @@ import { worldSettings } from "./worldSettings";
 import { TRAVEL_EVENT, ZOOM_EVENT, villageStore } from "./villageStore";
 
 /** How long one step between tiles takes. */
-const STEP_MS = 210;
+const STEP_MS = 225;
 /**
  * How long the view takes to drift to where it is going. Each step while
  * walking starts a fresh drift from wherever the view is, so it glides
@@ -160,6 +161,14 @@ const PATH_MARGIN = 16;
  */
 const OPEN_REACH = 10;
 const OPEN_TRIES = 12;
+/**
+ * Touch: a finger that strays less than this many window pixels and lifts
+ * within TAP_MS is a tap, which walks there; further, it drags the view.
+ */
+const TAP_SLOP = 10;
+const TAP_MS = 500;
+/** How long after a tap its trailing click is ignored, so it isn't handled twice. */
+const TAP_CLICK_MS = 800;
 /** How long the cross on an unreachable tile stays before it fades. */
 const NO_PATH_MS = 700;
 /**
@@ -342,6 +351,21 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
   const mapHover = { from: 0, to: 0, at: -Infinity };
   /** The minimap's framing as a drag on it began, kept for the drag. */
   let mapDrag: { frame: MapFrame; pointer: number } | null = null;
+  /** A phone or tablet: no keys to hint at, and fingers instead of a mouse. */
+  const touchScreen = window.matchMedia("(pointer: coarse)");
+  /** Fingers on the world, by pointer id: where each was last seen. */
+  const fingers = new Map<number, { x: number; y: number }>();
+  /**
+   * What the fingers on the world are doing: maybe a tap (where and when it
+   * began), dragging the view, or pinching to zoom.
+   */
+  let gesture:
+    | { kind: "tap"; x: number; y: number; at: number }
+    | { kind: "drag" }
+    | { kind: "pinch" }
+    | null = null;
+  /** When a tap was last handled, so the click the browser sends after it is ignored. */
+  let tappedAt = -Infinity;
 
   /** Everything a view centred on (cx, cy) can show, with room for edges. */
   function viewBounds(cx: number, cy: number): Bounds {
@@ -781,7 +805,7 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
     camera.x = kept.x;
     camera.y = kept.y;
 
-    const scale = (window.devicePixelRatio || 1) * zoom;
+    const scale = pixelRatio() * zoom;
     ctx.setTransform(scale, 0, 0, scale, 0, 0);
     ctx.clearRect(0, 0, width, height);
     ctx.translate(width / 2 - camera.x, height / 2 - camera.y);
@@ -794,6 +818,7 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
     // those still rising. See floor.ts.
     const rising = drawFloor(ctx, floor, tiles, {
       now,
+      view: viewBounds(camera.x, camera.y),
       riseMs: animated(RISE_MS),
       risePx: RISE_PX,
       lip: LIP,
@@ -1065,7 +1090,7 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
       chicken.fromCol + (chicken.col - chicken.fromCol) * moved + 0.5;
     const mapRow =
       chicken.fromRow + (chicken.row - chicken.fromRow) * moved + 0.5;
-    const mapKey = `${camera.x.toFixed(1)}|${camera.y.toFixed(1)}|${width}|${height}|${window.devicePixelRatio}|${mapCol.toFixed(3)}|${mapRow.toFixed(3)}|${chicken.facing}|${mapHoverAt(now).toFixed(3)}`;
+    const mapKey = `${camera.x.toFixed(1)}|${camera.y.toFixed(1)}|${width}|${height}|${pixelRatio()}|${mapCol.toFixed(3)}|${mapRow.toFixed(3)}|${chicken.facing}|${mapHoverAt(now).toFixed(3)}`;
     if (mapCtx && (mapKey !== shownMap.key || colors !== shownMap.colors)) {
       shownMap.key = mapKey;
       shownMap.colors = colors;
@@ -1139,7 +1164,9 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
   /**
    * Puts the view's centre straight at (x, y), for edge scrolling and the
    * minimap. Floor rises in at once where the view now reaches, and blocks
-   * left behind are dropped every so often rather than every frame.
+   * left behind are dropped every so often rather than every frame. On a
+   * touch screen new floor is simply there instead of rising: a phone
+   * sliding the view fast can't keep up with hundreds of blocks rising.
    */
   function panTo(toX: number, toY: number, now: number) {
     const [w, h] = targetView();
@@ -1147,7 +1174,7 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
     camera.panning = false;
     camera.x = camera.fromX = camera.toX = x;
     camera.y = camera.fromY = camera.toY = y;
-    fill(viewBounds(x, y), now, () => 0);
+    fill(viewBounds(x, y), now, touchScreen.matches ? () => -Infinity : () => 0);
     if (now - edge.culled > EDGE_CULL_MS) {
       edge.culled = now;
       cull(viewBounds(x, y));
@@ -1334,7 +1361,11 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
     ) {
       return;
     }
-    const point = worldAt(event.clientX, event.clientY);
+    walkToward(worldAt(event.clientX, event.clientY));
+  }
+
+  /** Walks to the floor under world point `point`, or under the picture there. */
+  function walkToward(point: { x: number; y: number }) {
     const onBoard = boardFloorAt(visiblePlans(viewBounds(camera.x, camera.y)), point);
     if (onBoard) {
       walkTo({ col: Math.floor(onBoard.col), row: Math.floor(onBoard.row) }, onBoard);
@@ -1342,6 +1373,83 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
       const tile = tileAtWorld(point.x, point.y);
       walkTo(tile, { col: tile.col + 0.5, row: tile.row + 0.5 });
     }
+  }
+
+  /** The distance between the first two fingers, in window pixels. */
+  function fingerSpan() {
+    const [a, b] = [...fingers.values()];
+    return a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0;
+  }
+
+  /**
+   * Touch on the world. A tap does what a right-click does (and a tap on a
+   * Claude what a click does); one finger dragged moves the view, as a drag
+   * on the minimap does; two fingers pinch to zoom, as the wheel does.
+   */
+  function onTouchDown(event: PointerEvent) {
+    if (event.pointerType === "mouse" || performance.now() < propsFrom) return;
+    canvas.setPointerCapture(event.pointerId);
+    fingers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (fingers.size === 1) {
+      gesture = { kind: "tap", x: event.clientX, y: event.clientY, at: performance.now() };
+    } else {
+      gesture = { kind: "pinch" };
+    }
+  }
+
+  function onTouchMove(event: PointerEvent) {
+    const finger = fingers.get(event.pointerId);
+    if (!finger || !gesture) return;
+    if (gesture.kind === "pinch") {
+      const before = fingerSpan();
+      finger.x = event.clientX;
+      finger.y = event.clientY;
+      const after = fingerSpan();
+      if (before > 0 && after > 0) zoomBy(after / before, 0);
+      return;
+    }
+    let fromX = finger.x;
+    let fromY = finger.y;
+    if (gesture.kind === "tap") {
+      if (Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y) <= TAP_SLOP) return;
+      // Strayed too far for a tap: the drag starts from where the finger went down.
+      fromX = gesture.x;
+      fromY = gesture.y;
+      gesture = { kind: "drag" };
+    }
+    finger.x = event.clientX;
+    finger.y = event.clientY;
+    panTo(
+      camera.x - (event.clientX - fromX) / zoom,
+      camera.y - (event.clientY - fromY) / zoom,
+      performance.now(),
+    );
+  }
+
+  function onTouchUp(event: PointerEvent) {
+    if (!fingers.delete(event.pointerId)) return;
+    const was = gesture;
+    if (fingers.size > 0) {
+      // A pinch down to one finger carries on as a drag.
+      gesture = { kind: "drag" };
+      return;
+    }
+    gesture = null;
+    const now = performance.now();
+    if (event.type === "pointerup" && was?.kind === "tap" && now - was.at < TAP_MS) {
+      tappedAt = now;
+      const point = worldAt(event.clientX, event.clientY);
+      const prop = propAtPoint(point.x, point.y);
+      if (prop?.kind.id === "claude") {
+        spawnMinis(minis, prop, now);
+        schedule();
+      } else {
+        walkToward(point);
+      }
+      return;
+    }
+    // Done moving the view: drop the blocks it left behind.
+    cull(viewBounds(camera.x, camera.y));
   }
 
   /** The path from the chicken to `target`, or null if there is none. */
@@ -1454,6 +1562,8 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
   function onClick(event: MouseEvent) {
     const now = performance.now();
     if (event.button !== 0 || now < propsFrom) return;
+    // A tap has already been handled as a touch.
+    if (now - tappedAt < TAP_CLICK_MS) return;
     const { x, y } = worldAt(event.clientX, event.clientY);
     const prop = propAtPoint(x, y);
     if (prop?.kind.id !== "claude") return;
@@ -1508,6 +1618,8 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
       schedule();
     }
     if (travelFromHash()) return;
+    // The keys hinted at aren't there on a touch screen; the guide shows the gestures.
+    if (touchScreen.matches) return;
     hints.anchor = { col: chicken.col, row: chicken.row };
     hints.shownAt = performance.now() + HINT_DELAY_MS;
     hints.hiddenAt = null;
@@ -1542,7 +1654,7 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
 
   function resize() {
     const first = width === 0;
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = pixelRatio();
     baseZoom = (overview ? overviewZoom : fitZoom)(
       window.innerWidth,
       window.innerHeight,
@@ -1675,6 +1787,10 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
   canvas.addEventListener("click", onClick);
   canvas.addEventListener("pointermove", onPointerMove);
   canvas.addEventListener("pointerleave", onPointerLeave);
+  canvas.addEventListener("pointerdown", onTouchDown);
+  canvas.addEventListener("pointermove", onTouchMove);
+  canvas.addEventListener("pointerup", onTouchUp);
+  canvas.addEventListener("pointercancel", onTouchUp);
   window.addEventListener("pointermove", onWindowPointerMove);
   window.addEventListener("pointerout", onWindowPointerOut);
   map.canvas.addEventListener("pointerdown", onMapPointerDown);
@@ -1700,6 +1816,10 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
     canvas.removeEventListener("click", onClick);
     canvas.removeEventListener("pointermove", onPointerMove);
     canvas.removeEventListener("pointerleave", onPointerLeave);
+    canvas.removeEventListener("pointerdown", onTouchDown);
+    canvas.removeEventListener("pointermove", onTouchMove);
+    canvas.removeEventListener("pointerup", onTouchUp);
+    canvas.removeEventListener("pointercancel", onTouchUp);
     window.removeEventListener("pointermove", onWindowPointerMove);
     window.removeEventListener("pointerout", onWindowPointerOut);
     map.canvas.removeEventListener("pointerdown", onMapPointerDown);
@@ -1738,9 +1858,9 @@ export default function World() {
     <>
       <canvas
         ref={canvasRef}
-        className="fixed inset-0 h-full w-full"
+        className="fixed inset-0 h-full w-full touch-none"
         role="img"
-        aria-label="The name Jason Ye in huge metallic letters lying flat on an endless grid floor, with a blocky chicken standing beside them. Use the W, A, S and D keys or the arrow keys to walk the chicken around, right-click a tile to walk there, and scroll to zoom."
+        aria-label="The name Jason Ye in huge metallic letters lying flat on an endless grid floor, with a blocky chicken standing beside them. Use the W, A, S and D keys or the arrow keys to walk the chicken around, right-click or tap a tile to walk there, drag to look around, and scroll or pinch to zoom."
       />
       {/* Fog thickens toward the window edges, so new blocks rise out of it. */}
       <div className="fog pointer-events-none fixed inset-0" />

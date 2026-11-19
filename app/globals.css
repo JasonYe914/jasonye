@@ -322,9 +322,11 @@ body {
   width: 45%;
   height: 45%;
 }
-.nav-item:hover {
-  color: var(--nav-icon-on);
-  background: var(--nav-hover);
+@media (hover: hover) {
+  .nav-item:hover {
+    color: var(--nav-icon-on);
+    background: var(--nav-hover);
+  }
 }
 .nav-item[aria-current="page"] {
   color: var(--nav-icon-on);
@@ -357,10 +359,15 @@ body {
     opacity 150ms ease-out,
     transform 150ms ease-out;
 }
-.nav-item:hover .nav-tip,
 .nav-item:focus-visible .nav-tip {
   opacity: 1;
   transform: translate(-50%, 0);
+}
+@media (hover: hover) {
+  .nav-item:hover .nav-tip {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
 }
 
 /* The moon offers dark mode; the sun offers light mode back. */
@@ -520,9 +527,11 @@ body {
   border-radius: 999px;
   color: var(--muted);
 }
-.village-sheet-close:hover {
-  background: var(--chrome-border);
-  color: var(--foreground);
+@media (hover: hover) {
+  .village-sheet-close:hover {
+    background: var(--chrome-border);
+    color: var(--foreground);
+  }
 }
 .village-sheet-close svg {
   width: 18px;
@@ -706,9 +715,11 @@ body {
     background-color 150ms ease-out,
     color 150ms ease-out;
 }
-.gallery-close:hover {
-  color: var(--background);
-  background: var(--foreground);
+@media (hover: hover) {
+  .gallery-close:hover {
+    color: var(--background);
+    background: var(--foreground);
+  }
 }
 .gallery-close svg {
   width: 16px;
@@ -859,9 +870,11 @@ body {
     background-color 150ms ease-out,
     color 150ms ease-out;
 }
-.gallery-card-link:hover {
-  background: var(--foreground);
-  color: var(--background);
+@media (hover: hover) {
+  .gallery-card-link:hover {
+    background: var(--foreground);
+    color: var(--background);
+  }
 }
 .gallery-card-link:focus-visible,
 .gallery-close:focus-visible {
@@ -878,8 +891,10 @@ body {
   stroke-linejoin: round;
   transition: transform 150ms ease-out;
 }
-.gallery-card-link:hover svg {
-  transform: translateX(2px);
+@media (hover: hover) {
+  .gallery-card-link:hover svg {
+    transform: translateX(2px);
+  }
 }
 
 /* The featured project: a wide card above the lanes, its picture on the
@@ -983,8 +998,10 @@ body {
   color: var(--muted);
   transition: color 150ms ease-out;
 }
-.project-nav a:hover {
-  color: var(--foreground);
+@media (hover: hover) {
+  .project-nav a:hover {
+    color: var(--foreground);
+  }
 }
 .project-nav svg,
 .project-foot svg {
@@ -1265,8 +1282,10 @@ body {
 .project-foot svg {
   transition: transform 150ms ease-out;
 }
-.project-foot a:hover svg {
-  transform: translateX(3px);
+@media (hover: hover) {
+  .project-foot a:hover svg {
+    transform: translateX(3px);
+  }
 }
 .project-nav a:focus-visible,
 .project-foot a:focus-visible,
@@ -1478,6 +1497,31 @@ body {
   display: none;
 }
 
+/* Edge scrolling follows a mouse, so a touch screen has no use for it. */
+@media (pointer: coarse) {
+  .settings-switch[data-setting="edgePan"] {
+    display: none;
+  }
+}
+
+/* A tablet keeps the minimap, at the smaller size. */
+@media (pointer: coarse) and (min-width: 700px) and (min-height: 500px) {
+  .world-map canvas {
+    width: 168px;
+    height: 168px;
+  }
+}
+
+/* A phone has no room for the minimap: it goes, and so do its settings.
+   (A phone on its side is wide but short, so it counts too.) */
+@media (pointer: coarse) and (max-width: 699px),
+  (pointer: coarse) and (max-height: 499px) {
+  .world-map,
+  .settings-group.settings-on-screen {
+    display: none;
+  }
+}
+
 .nav-item[data-open] {
   color: var(--nav-icon-on);
   background: var(--nav-hover);
@@ -1543,9 +1587,11 @@ body {
   stroke-width: 2;
   stroke-linecap: round;
 }
-.settings-zoom button:hover,
-.settings-row-button:hover {
-  background: color-mix(in srgb, var(--foreground) 12%, transparent);
+@media (hover: hover) {
+  .settings-zoom button:hover,
+  .settings-row-button:hover {
+    background: color-mix(in srgb, var(--foreground) 12%, transparent);
+  }
 }
 
 .settings-switch {
@@ -1557,15 +1603,19 @@ body {
   border-radius: 10px;
   text-align: left;
 }
-.settings-switch:hover {
-  background: var(--chrome-border);
+@media (hover: hover) {
+  .settings-switch:hover {
+    background: var(--chrome-border);
+  }
 }
 .settings-switch:disabled {
   opacity: 0.45;
   cursor: default;
 }
-.settings-switch:disabled:hover {
-  background: none;
+@media (hover: hover) {
+  .settings-switch:disabled:hover {
+    background: none;
+  }
 }
 .settings-switch-label {
   font-size: 13px;
@@ -1637,6 +1687,11 @@ body {
     transform: none;
     flex-direction: column;
     animation-name: guide-in-flat, guide-bob;
+  }
+  /* The touch guide has three rows, so it sits compactly above the dock
+     rather than reaching up the screen. */
+  .guide.is-touch {
+    top: auto;
   }
 }
 .guide-rows {
@@ -1713,8 +1768,10 @@ body {
   color: var(--background);
   background: var(--foreground);
 }
-.guide-ok:hover {
-  opacity: 0.88;
+@media (hover: hover) {
+  .guide-ok:hover {
+    opacity: 0.88;
+  }
 }
 /*
  * The whole strip bobs gently once it is in. It moves with `translate`,
@@ -1838,8 +1895,10 @@ body {
   background: var(--card-well);
   transition: background-color 150ms ease-out;
 }
-.contact-link:hover {
-  background: color-mix(in srgb, var(--hue) 12%, var(--card));
+@media (hover: hover) {
+  .contact-link:hover {
+    background: color-mix(in srgb, var(--hue) 12%, var(--card));
+  }
 }
 .contact-tile {
   flex-shrink: 0;
@@ -1853,8 +1912,10 @@ body {
   box-shadow: 0 3px 0 color-mix(in srgb, var(--hue) 70%, #000);
   transition: transform 150ms ease-out;
 }
-.contact-link:hover .contact-tile {
-  transform: translateY(-2px) rotate(-4deg);
+@media (hover: hover) {
+  .contact-link:hover .contact-tile {
+    transform: translateY(-2px) rotate(-4deg);
+  }
 }
 .contact-tile svg,
 .contact-arrow {
@@ -1893,9 +1954,11 @@ body {
     transform 150ms ease-out,
     color 150ms ease-out;
 }
-.contact-link:hover .contact-arrow {
-  color: var(--hue);
-  transform: translate(2px, -2px);
+@media (hover: hover) {
+  .contact-link:hover .contact-arrow {
+    color: var(--hue);
+    transform: translate(2px, -2px);
+  }
 }
 /* Email's row makes room for its copy button where the arrow sits. */
 .contact-row:has(.contact-copy) .contact-arrow {
@@ -1921,9 +1984,11 @@ body {
     background-color 150ms ease-out,
     color 150ms ease-out;
 }
-.contact-copy:hover {
-  background: var(--foreground);
-  color: var(--background);
+@media (hover: hover) {
+  .contact-copy:hover {
+    background: var(--foreground);
+    color: var(--background);
+  }
 }
 .contact-link:focus-visible,
 .contact-copy:focus-visible {
@@ -2254,17 +2319,28 @@ body {
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-.about-path button:hover,
 .about-path button:focus-visible {
   background: var(--card-well);
 }
-.about-path button:hover .about-path-go,
+@media (hover: hover) {
+  .about-path button:hover {
+    background: var(--card-well);
+  }
+}
 .about-path button:focus-visible .about-path-go {
   opacity: 1;
   translate: 0 0;
 }
-.about-path li:has(button:hover)::before {
-  scale: 1.3;
+@media (hover: hover) {
+  .about-path button:hover .about-path-go {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@media (hover: hover) {
+  .about-path li:has(button:hover)::before {
+    scale: 1.3;
+  }
 }
 .about-path button:focus-visible {
   outline: 2px solid var(--foreground);
@@ -2312,9 +2388,11 @@ body {
     color 150ms ease-out,
     border-color 150ms ease-out;
 }
-.about-links a:hover {
-  border-color: transparent;
-  color: #1c1917;
+@media (hover: hover) {
+  .about-links a:hover {
+    border-color: transparent;
+    color: #1c1917;
+  }
 }
 .about-links a:focus-visible {
   outline: 2px solid var(--foreground);
