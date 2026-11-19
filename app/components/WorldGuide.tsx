@@ -47,6 +47,54 @@ function MouseIcon({ button }: { button: "right" | "wheel" }) {
   );
 }
 
+/** A fingertip gesture, drawn in the same line style as the mouse. */
+function TouchIcon({ gesture }: { gesture: "tap" | "drag" | "pinch" }) {
+  return (
+    <svg className="guide-mouse" viewBox="0 0 24 24" aria-hidden="true">
+      {gesture === "tap" && (
+        <>
+          <circle className="guide-mouse-on" cx="12" cy="12" r="3" />
+          <circle cx="12" cy="12" r="6.5" />
+          <circle cx="12" cy="12" r="10" opacity="0.45" />
+        </>
+      )}
+      {gesture === "drag" && (
+        <>
+          <circle className="guide-mouse-on" cx="12" cy="12" r="3" />
+          <path d="M3 12h4M17 12h4M12 3v4M12 17v4" />
+          <path d="M5 10l-2 2 2 2M19 10l2 2-2 2M10 5l2-2 2 2M10 19l2 2 2-2" />
+        </>
+      )}
+      {gesture === "pinch" && (
+        <>
+          <circle className="guide-mouse-on" cx="8.5" cy="15.5" r="2.6" />
+          <circle className="guide-mouse-on" cx="15.5" cy="8.5" r="2.6" />
+          <path d="M5.5 18.5 3 21M18.5 5.5 21 3M3 17.5V21h3.5M21 6.5V3h-3.5" />
+        </>
+      )}
+    </svg>
+  );
+}
+
+/** The same guide for a touch screen, where there are no keys or mouse. */
+const TOUCH_ROWS: { keys: ReactNode; label: string; spoken: string }[] = [
+  {
+    keys: <TouchIcon gesture="tap" />,
+    label: "Go to",
+    spoken: "Tap a tile to walk the chicken there.",
+  },
+  {
+    keys: <TouchIcon gesture="drag" />,
+    label: "Look",
+    spoken: "Drag to look around the world.",
+  },
+  {
+    keys: <TouchIcon gesture="pinch" />,
+    label: "Zoom",
+    spoken: "Pinch to zoom in and out.",
+  },
+];
+
 /**
  * Each control as a picture and one word. The pictures carry the meaning;
  * full sentences are only for screen readers.
@@ -127,11 +175,13 @@ export default function WorldGuide() {
   }
 
   if (!open) return null;
+  // Only ever open in the browser (after the intro), so this is safe to read here.
+  const touch = window.matchMedia("(pointer: coarse)").matches;
 
   return (
-    <section className="guide chrome" aria-label="Controls">
+    <section className={touch ? "guide chrome is-touch" : "guide chrome"} aria-label="Controls">
       <ul className="guide-rows">
-        {ROWS.map((row) => (
+        {(touch ? TOUCH_ROWS : ROWS).map((row) => (
           <li key={row.label}>
             <span className="guide-keys" aria-hidden="true">
               {row.keys}

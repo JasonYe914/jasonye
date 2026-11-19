@@ -15,6 +15,7 @@ import {
   type Direction,
 } from "./iso";
 import { HOME, NAME_TILES, drawName, fitZoom } from "./name";
+import { lowEndTouch, pixelRatio } from "./pixelRatio";
 import { readPalette, watchTheme, type Palette } from "./theme";
 
 /** How long the swirl takes to reach the last block. */
@@ -491,7 +492,7 @@ function startLoader(canvas: HTMLCanvasElement, onLanded: () => void) {
     const sinceSettle =
       settleAt === null ? 0 : reducedMotion ? Infinity : now - settleAt;
 
-    const scale = (window.devicePixelRatio || 1) * zoom;
+    const scale = pixelRatio() * zoom;
     const center = HOME;
     const top = center.y - height / 2 - HALF_H - LIP;
     const bottom = center.y + height / 2 + HALF_H + RAISE_MAX_PX;
@@ -547,7 +548,7 @@ function startLoader(canvas: HTMLCanvasElement, onLanded: () => void) {
     // so none has to be pictured mid-fall and the fall never stutters.
     if (settleAt !== null) {
       const until = performance.now() + BLOCK_BUDGET_MS;
-      const pixelScale = (window.devicePixelRatio || 1) * zoom;
+      const pixelScale = pixelRatio() * zoom;
       for (const tile of tiles) {
         if (performance.now() > until) break;
         if (tile.lettered && tile.block === undefined) {
@@ -582,7 +583,7 @@ function startLoader(canvas: HTMLCanvasElement, onLanded: () => void) {
         // sinks into its slot, the sides slipping out of sight below the
         // floor, as a settling floor block's do.
         const depth = Math.min(BLOCK_DEPTH, lift);
-        const pixelScale = (window.devicePixelRatio || 1) * zoom;
+        const pixelScale = pixelRatio() * zoom;
         if (tile.block === undefined) {
           tile.block = buildBlock(tile, colors, pixelScale);
         }
@@ -697,7 +698,7 @@ function startLoader(canvas: HTMLCanvasElement, onLanded: () => void) {
   }
 
   function resize() {
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = pixelRatio();
     zoom = fitZoom(window.innerWidth, window.innerHeight);
     width = window.innerWidth / zoom;
     height = window.innerHeight / zoom;
@@ -775,6 +776,17 @@ export default function Loader() {
   useEffect(() => {
     // Read again here: while hydrating, `onGallery` is still the server's.
     if (onGallery || projectsInUrl() || intro.played()) return;
+    if (lowEndTouch()) {
+      // A weak phone skips the intro: the overlay just fades, and the world
+      // opens onto the name and pulls back to the overview as usual. Left a
+      // frame, so the world (and the guide) are listening for the landing.
+      const skip = requestAnimationFrame(() => {
+        intro.markPlayed();
+        setPhase("reveal");
+        window.dispatchEvent(new Event(INTRO_LANDED_EVENT));
+      });
+      return () => cancelAnimationFrame(skip);
+    }
     if (canvasRef.current) {
       return startLoader(canvasRef.current, () => {
         // Played once landed (not on starting, which development mode's

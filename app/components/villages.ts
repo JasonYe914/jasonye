@@ -389,22 +389,10 @@ export const VILLAGES: Village[] = [
     facts: ["Product engineering intern", "Driver qualification", "React · Supabase · Redis"],
     metrics: [
       {
-        value: "10/10",
-        label: "scenarios",
-        size: "s",
-        detail: "Passed all 10 client-provided scenario tests and got the client's approval.",
-      },
-      {
-        value: "20",
-        label: "certification types",
+        value: "~2 S",
+        label: "faster per reload",
         size: "m",
-        detail: "20 certification types decide whether a driver is authorized, based on whether each qualification is still valid.",
-      },
-      {
-        value: "4,462+",
-        label: "equipment records",
-        size: "l",
-        detail: "The platform supports more than 4,462 equipment records.",
+        detail: "Redis caching and CDN delivery together cut about 2 seconds from every reload.",
       },
     ],
     tools: [
@@ -419,8 +407,8 @@ export const VILLAGES: Village[] = [
     ],
     points: [
       {
-        label: "~2 S PER RELOAD",
-        text: "Caching through a single Redis instance plus CDN delivery cut about 2 seconds from every reload.",
+        label: "CERTIFICATION CHECKS",
+        text: "A driver is authorized only while every certification their work requires is still valid.",
       },
       {
         label: "SUPERVISOR OVERRIDES",

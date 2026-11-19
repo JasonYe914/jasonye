@@ -101,7 +101,7 @@ export default function SettingsMenu({
         </button>
       </div>
 
-      <div className="settings-group">
+      <div className="settings-group settings-on-screen">
         <p className="settings-label">On screen</p>
         {TOGGLES.map((toggle) => (
           <button
@@ -110,6 +110,7 @@ export default function SettingsMenu({
             role="switch"
             aria-checked={settings[toggle.key]}
             className="settings-switch"
+            data-setting={toggle.key}
             disabled={toggle.key === "coords" && !settings.minimap}
             onClick={() =>
               worldSettings.set({ [toggle.key]: !settings[toggle.key] })

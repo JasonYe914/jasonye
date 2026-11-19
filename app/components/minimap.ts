@@ -1,5 +1,6 @@
 import { HALF_H, HALF_W, project, type Direction } from "./iso";
 import { LANDMARKS } from "./landmarks";
+import { pixelRatio } from "./pixelRatio";
 import { drawNameFlat } from "./name";
 import { PLACES } from "./places";
 import { PLANS } from "./villageLayout";
@@ -97,7 +98,7 @@ export function drawMinimap(
   const w = canvas.clientWidth;
   const h = canvas.clientHeight;
   if (!w || !h) return;
-  const dpr = window.devicePixelRatio || 1;
+  const dpr = pixelRatio();
   if (canvas.width !== Math.round(w * dpr)) canvas.width = Math.round(w * dpr);
   if (canvas.height !== Math.round(h * dpr)) canvas.height = Math.round(h * dpr);
 

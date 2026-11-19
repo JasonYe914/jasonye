@@ -129,7 +129,7 @@ export default function ContactPanel({ onClose }: { onClose: () => void }) {
                 className="contact-link"
                 href={contact.href}
                 {...(contact.href.startsWith("http")
-                  ? { target: "_blank", rel: "noreferrer" }
+                  ? { target: "_blank", rel: "noopener noreferrer" }
                   : {})}
               >
                 <span className="contact-tile" aria-hidden="true">

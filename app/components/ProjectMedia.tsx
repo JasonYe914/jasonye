@@ -8,13 +8,31 @@ import type { Project } from "./projects";
  * screenshot, a tall phone capture, a squarer photo.
  */
 
+/**
+ * Smaller copies of the largest pictures, so a phone's narrow card doesn't
+ * download the full-size one: each source's copies, by width in pixels.
+ */
+const SMALLER: Record<string, { src: string; width: number }[]> = {
+  "/projects/solitaire.jpg": [{ src: "/projects/solitaire-1200.jpg", width: 1200 }],
+  "/projects/desmos.webp": [{ src: "/projects/desmos-800.webp", width: 800 }],
+};
+
+/** The full-size widths of the pictures that have smaller copies. */
+const FULL_WIDTH: Record<string, number> = {
+  "/projects/solitaire.jpg": 2400,
+  "/projects/desmos.webp": 1565,
+};
+
 /** The project's main picture: its first image, or a sketch of one. */
 export default function ProjectMedia({
   project,
   className,
+  priority = false,
 }: {
   project: Project;
   className?: string;
+  /** Load at once, as the main picture of its page; otherwise only once near view. */
+  priority?: boolean;
 }) {
   const { kind, aspect } = project.media;
   const board = project.boards[project.media.board ?? 0];
@@ -29,7 +47,24 @@ export default function ProjectMedia({
         style={{ aspectRatio: aspect, "--aspect": aspect } as CSSProperties}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={board.src} alt={board.alt} className="media-shot" />
+        <img
+          src={board.src}
+          srcSet={
+            SMALLER[board.src]
+              ? [
+                  ...SMALLER[board.src].map((copy) => `${copy.src} ${copy.width}w`),
+                  `${board.src} ${FULL_WIDTH[board.src]}w`,
+                ].join(", ")
+              : undefined
+          }
+          // Only a phone-width window may pick a smaller copy; anything
+          // wider asks for the full width, so it always gets the original.
+          sizes={SMALLER[board.src] ? `(max-width: 699px) 100vw, ${FULL_WIDTH[board.src]}px` : undefined}
+          alt={board.alt}
+          className="media-shot"
+          loading={priority ? "eager" : "lazy"}
+          decoding="async"
+        />
       </div>
     );
   }

@@ -222,7 +222,7 @@ export default function AboutPanel({
                   key={link.label}
                   href={link.href}
                   target={link.href.startsWith("http") ? "_blank" : undefined}
-                  rel="noreferrer"
+                  rel={link.href.startsWith("http") ? "noopener noreferrer" : undefined}
                 >
                   {link.label}
                   <svg viewBox="0 0 24 24" aria-hidden="true">

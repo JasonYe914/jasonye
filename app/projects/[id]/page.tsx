@@ -51,7 +51,7 @@ export default async function ProjectPage({ params }: Props) {
         <h1>{project.name}</h1>
       </header>
 
-      <ProjectMedia project={project} className="project-media" />
+      <ProjectMedia project={project} className="project-media" priority />
 
       <div className="project-layout">
         <article className="project-main">
@@ -157,7 +157,7 @@ export default async function ProjectPage({ params }: Props) {
                 <dt>Links</dt>
                 <dd className="project-links">
                   {project.links.map((link) => (
-                    <a key={link.href} href={link.href} target="_blank" rel="noreferrer">
+                    <a key={link.href} href={link.href} target="_blank" rel="noopener noreferrer">
                       {link.label}
                       <svg viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M7 17 17 7M8 7h9v9" />
