@@ -80,7 +80,7 @@ function Sheet({ id }: { id: string }) {
       {village.boards.map((board) =>
         board.src ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img key={board.caption} src={board.src} alt={board.alt} className="village-sheet-media" loading="lazy" decoding="async" />
+          <img key={board.caption} src={board.flatSrc ?? board.src} alt={board.alt} className="village-sheet-media" loading="lazy" decoding="async" />
         ) : (
           <div key={board.caption} className="village-sheet-media is-empty">
             <span>{board.caption}</span>

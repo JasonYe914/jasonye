@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useEffect,
   useState,
   useSyncExternalStore,
   type PointerEvent,
@@ -15,6 +16,7 @@ import {
   GALLERY_CLOSED_EVENT,
   forgetGalleryRequest,
   projectsInUrl,
+  setWorldCovered,
   travelTo,
   villageStore,
 } from "./villageStore";
@@ -217,6 +219,14 @@ export default function NavBar() {
    */
   const [swapped, setSwapped] = useState(false);
 
+  // The gallery and About fill the window, so the world stops drawing
+  // behind them. (Contact is a small card: the world still shows round it.)
+  const covered = galleryOpen || aboutOpen;
+  useEffect(() => {
+    setWorldCovered(covered);
+    return () => setWorldCovered(false);
+  }, [covered]);
+
   function choose(id: string) {
     setSettingsOpen(false);
     if (id === "projects") {
@@ -234,6 +244,7 @@ export default function NavBar() {
       return;
     }
     setSwapped(id === "about" && galleryOpen);
+    const inSection = galleryOpen || aboutOpen || contactOpen;
     // About opens over the world but isn't going to it: no intro for that.
     closeGallery(id !== "about");
     setContactOpen(false);
@@ -243,7 +254,10 @@ export default function NavBar() {
     }
     setAboutOpen(false);
     setActive(id);
-    if (id === "home") travelTo("home");
+    // From a section, Home is back to the world just where it was left;
+    // from the world itself, it takes the chicken home to the name.
+    // (Settings' "Back to start" always goes home.)
+    if (id === "home" && !inSection) travelTo("home");
   }
 
   /** `toWorld`: whether closing it shows the world, rather than another panel. */

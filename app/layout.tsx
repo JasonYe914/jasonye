@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Fredoka } from "next/font/google";
 import { InlineScript } from "./components/InlineScript";
 import { THEME_SCRIPT } from "./components/theme";
@@ -26,6 +26,18 @@ export const metadata: Metadata = {
     url: "/",
   },
   twitter: { card: "summary", title: SITE_NAME, description: SITE_DESCRIPTION },
+};
+
+/**
+ * The world runs edge to edge, under a phone's notch and home indicator
+ * too; everything fixed over it keeps clear of them with
+ * env(safe-area-inset-*) in globals.css. Zooming stays allowed. The
+ * theme-color tag is written by THEME_SCRIPT, which knows the theme.
+ */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

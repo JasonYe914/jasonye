@@ -7,7 +7,28 @@ export const THEME_KEY = "theme";
  * Runs in <head> before the first paint, so the page never flashes the
  * wrong theme. Kept tiny and dependency-free on purpose.
  */
-export const THEME_SCRIPT = `(function(){try{var t=localStorage.getItem("${THEME_KEY}");if(t!=="light"&&t!=="dark")t="light";document.documentElement.setAttribute("data-theme",t)}catch(e){}})()`;
+/**
+ * The page's background in each theme, for the browser's own toolbar and
+ * status bar on phones (the theme-color meta tag), so they run on from
+ * the page instead of sitting in a band of another colour.
+ */
+export const THEME_COLOR: Record<Theme, string> = {
+  light: "#f5f5f5",
+  dark: "#0a0a0a",
+};
+
+/** Points the theme-color meta tag (written by THEME_SCRIPT) at `theme`. */
+export function applyThemeColor(theme: Theme) {
+  document
+    .querySelector('meta[name="theme-color"]')
+    ?.setAttribute("content", THEME_COLOR[theme]);
+}
+
+/*
+ * Also writes the theme-color tag, already in the right colour, since the
+ * theme is only known here.
+ */
+export const THEME_SCRIPT = `(function(){var t="light";try{t=localStorage.getItem("${THEME_KEY}");if(t!=="light"&&t!=="dark")t="light"}catch(e){t="light"}document.documentElement.setAttribute("data-theme",t);var m=document.createElement("meta");m.name="theme-color";m.content=t==="dark"?"${THEME_COLOR.dark}":"${THEME_COLOR.light}";document.head.appendChild(m)})()`;
 
 /** The theme on screen now. Light unless dark has been chosen. */
 export function currentTheme(): Theme {

@@ -299,6 +299,8 @@ body {
 }
 
 .nav-bar {
+  /* Above the home indicator on a phone that has one (0 everywhere else). */
+  bottom: calc(36px + env(safe-area-inset-bottom, 0px));
   background: var(--nav-bg);
   border: 1px solid var(--nav-edge);
   box-shadow: var(--chrome-shadow);
@@ -477,9 +479,9 @@ body {
 .village-sheet {
   position: fixed;
   z-index: 45;
-  top: 16px;
-  right: 16px;
-  bottom: 16px;
+  top: calc(16px + env(safe-area-inset-top, 0px));
+  right: calc(16px + env(safe-area-inset-right, 0px));
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   width: min(420px, calc(100vw - 32px));
   overflow-y: auto;
   padding: 20px;
@@ -492,11 +494,21 @@ body {
 @media (max-width: 639px) {
   .village-sheet {
     top: auto;
-    left: 12px;
-    right: 12px;
-    bottom: 12px;
+    left: calc(12px + env(safe-area-inset-left, 0px));
+    right: calc(12px + env(safe-area-inset-right, 0px));
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
     width: auto;
     max-height: 72vh;
+    /* The height actually on screen, as the browser's bars come and go. */
+    max-height: 72dvh;
+  }
+}
+/* Under 330px the dock is wider than the sheet over it, and its ends
+   showed either side: the sheet widens just enough to cover them. */
+@media (max-width: 329px) {
+  .village-sheet {
+    left: 6px;
+    right: 6px;
   }
 }
 .village-sheet-head {
@@ -520,6 +532,7 @@ body {
   font-size: 11px !important;
 }
 .village-sheet-close {
+  position: relative;
   display: grid;
   place-items: center;
   width: 32px;
@@ -571,6 +584,12 @@ body {
 .village-sheet-media {
   width: 100%;
   border-radius: 10px;
+  /* A hairline edge, so a white logo still reads as a card on the sheet. */
+  outline: 1px solid var(--chrome-border);
+  outline-offset: -1px;
+}
+.village-sheet-media.is-empty {
+  outline: none;
 }
 .village-sheet-media.is-empty {
   aspect-ratio: 16 / 9;
@@ -631,6 +650,12 @@ body {
   font-size: 11.5px;
   color: var(--muted);
 }
+/* The hint names keys; a touch screen closes the sheet with its button. */
+@media (pointer: coarse) {
+  .village-sheet-hint {
+    display: none;
+  }
+}
 
 @keyframes village-rise {
   from {
@@ -665,7 +690,10 @@ body {
   overflow-y: auto;
   overscroll-behavior: contain;
   background: var(--background);
-  padding: 40px 24px 128px;
+  padding: calc(40px + env(safe-area-inset-top, 0px))
+    calc(24px + env(safe-area-inset-right, 0px))
+    calc(128px + env(safe-area-inset-bottom, 0px))
+    calc(24px + env(safe-area-inset-left, 0px));
   outline: none;
   animation: gallery-in 220ms ease-out;
 }
@@ -676,7 +704,10 @@ body {
 }
 @media (max-width: 699px) {
   .gallery {
-    padding: 24px 16px 116px;
+    padding: calc(24px + env(safe-area-inset-top, 0px))
+      calc(16px + env(safe-area-inset-right, 0px))
+      calc(116px + env(safe-area-inset-bottom, 0px))
+      calc(16px + env(safe-area-inset-left, 0px));
   }
 }
 .gallery-head,
@@ -701,6 +732,7 @@ body {
    border and soft shadow, with the corner radius of their buttons, and
    the same fill to ink on hover. */
 .gallery-close {
+  position: relative;
   flex-shrink: 0;
   display: grid;
   place-items: center;
@@ -972,7 +1004,8 @@ body {
   max-width: 1040px;
   width: 100%;
   margin: 0 auto;
-  padding: 32px 24px 80px;
+  padding: 32px calc(24px + env(safe-area-inset-right, 0px)) 80px
+    calc(24px + env(safe-area-inset-left, 0px));
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 32px;
@@ -980,7 +1013,8 @@ body {
 }
 @media (max-width: 599px) {
   .project {
-    padding: 20px 16px 56px;
+    padding: 20px calc(16px + env(safe-area-inset-right, 0px)) 56px
+      calc(16px + env(safe-area-inset-left, 0px));
     gap: 24px;
   }
 }
@@ -1039,6 +1073,9 @@ body {
 .gallery-media.project-media {
   width: 100%;
   max-height: 70vh;
+  /* The smallest the screen gets, so the picture doesn't resize while the
+     page scrolls and the browser's bars slide away. */
+  max-height: 70svh;
   border-radius: 14px;
 }
 /* A real picture keeps its own shape: when the height cap would bite, the
@@ -1046,6 +1083,7 @@ body {
    rather than being cropped. */
 .gallery-media.project-media[data-kind="image"] {
   width: min(100%, calc(70vh * var(--aspect)));
+  width: min(100%, calc(70svh * var(--aspect)));
   justify-self: center;
 }
 .project-summary {
@@ -1667,7 +1705,7 @@ body {
   position: fixed;
   z-index: 36;
   left: 50%;
-  top: 24px;
+  top: calc(24px + env(safe-area-inset-top, 0px));
   transform: translateX(-50%);
   display: flex;
   align-items: center;
@@ -1681,9 +1719,9 @@ body {
 }
 @media (max-width: 639px) {
   .guide {
-    left: 12px;
-    right: 12px;
-    bottom: 108px;
+    left: calc(12px + env(safe-area-inset-left, 0px));
+    right: calc(12px + env(safe-area-inset-right, 0px));
+    bottom: calc(108px + env(safe-area-inset-bottom, 0px));
     transform: none;
     flex-direction: column;
     animation-name: guide-in-flat, guide-bob;
@@ -1759,6 +1797,7 @@ body {
   stroke: none;
 }
 .guide-ok {
+  position: relative;
   flex-shrink: 0;
   height: 36px;
   padding: 0 16px;
@@ -1815,13 +1854,26 @@ body {
   inset: 0;
   z-index: 39;
   display: grid;
+  /* One column no wider than the screen: left to size itself, the column
+     would grow to the card's unbroken addresses and push it off a narrow
+     phone. */
+  grid-template-columns: minmax(0, 1fr);
   place-items: center;
-  padding: 24px 16px 112px;
+  /* A phone on its side is too short for the card: it scrolls instead of
+     sliding under the dock. */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: calc(24px + env(safe-area-inset-top, 0px))
+    calc(16px + env(safe-area-inset-right, 0px))
+    calc(112px + env(safe-area-inset-bottom, 0px))
+    calc(16px + env(safe-area-inset-left, 0px));
   background: color-mix(in srgb, var(--background) 55%, transparent);
   animation: gallery-in 200ms ease-out;
 }
 .contact {
   width: min(440px, 100%);
+  /* Centred like place-items, but never past the top of a scrolled scrim. */
+  margin: auto;
   padding: 22px 18px 18px;
   border-radius: 22px;
   background: var(--card);
@@ -1944,6 +1996,15 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+/* A phone shows the whole address, over two lines if it must (after the
+   "@" or a "/"), rather than cutting it short. */
+@media (max-width: 479px) {
+  .contact-value {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.3;
+  }
 }
 .contact-arrow {
   flex-shrink: 0;
@@ -2554,7 +2615,7 @@ body {
   flex-wrap: wrap;
   justify-content: center;
   gap: 0 0.5em;
-  padding: 24px 16px;
+  padding: 24px 16px calc(24px + env(safe-area-inset-bottom, 0px));
   font-size: 12px;
   line-height: 1.5;
   color: var(--muted);
@@ -2563,7 +2624,7 @@ body {
 .site-foot-world {
   position: fixed;
   left: 50%;
-  bottom: 8px;
+  bottom: calc(8px + env(safe-area-inset-bottom, 0px));
   z-index: 20;
   transform: translateX(-50%);
   width: max-content;
@@ -2575,9 +2636,14 @@ body {
 }
 @media (max-width: 639px) {
   .site-foot-world {
-    bottom: 8px;
     font-size: 10px;
   }
+}
+
+/* The minimap, clear of a tablet's home indicator and rounded corners. */
+.world-map {
+  right: calc(16px + env(safe-area-inset-right, 0px));
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
 }
 
 /* On narrow screens the dock spans most of the bottom, so the minimap
@@ -2594,8 +2660,8 @@ body {
    about page and the details sheet: small grey monospace text, no box. */
 .clock {
   position: fixed;
-  top: 18px;
-  right: 20px;
+  top: calc(18px + env(safe-area-inset-top, 0px));
+  right: calc(20px + env(safe-area-inset-right, 0px));
   z-index: 30;
   font-family: ui-monospace, "SF Mono", Menlo, Consolas, "Courier New", monospace;
   font-size: 12px;
@@ -2605,8 +2671,40 @@ body {
 }
 @media (max-width: 639px) {
   .clock {
-    top: 12px;
-    right: 14px;
+    top: calc(12px + env(safe-area-inset-top, 0px));
+    right: calc(14px + env(safe-area-inset-right, 0px));
     font-size: 11px;
+  }
+}
+
+/* ---------- Fingers ---------- */
+
+/*
+ * A finger needs about 44px to land on. Where a control is drawn smaller,
+ * its tappable area reaches past its edges on touch screens, invisibly:
+ * text links grow padding and give it back as negative margin, and small
+ * buttons grow an empty layer round them. Nothing moves or changes look.
+ */
+@media (pointer: coarse) {
+  .project-nav a {
+    padding-block: 12px;
+    margin-block: -12px;
+  }
+  .project-links a,
+  .village-sheet-links a {
+    padding-block: 11px;
+    margin-block: -11px;
+  }
+  .project-foot a {
+    padding-block: 9px;
+    margin-block: -9px;
+  }
+  .gallery-close::after,
+  .village-sheet-close::after,
+  .contact-copy::after,
+  .guide-ok::after {
+    content: "";
+    position: absolute;
+    inset: -6px;
   }
 }

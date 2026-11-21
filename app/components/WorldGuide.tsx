@@ -48,7 +48,7 @@ function MouseIcon({ button }: { button: "right" | "wheel" }) {
 }
 
 /** A fingertip gesture, drawn in the same line style as the mouse. */
-function TouchIcon({ gesture }: { gesture: "tap" | "drag" | "pinch" }) {
+function TouchIcon({ gesture }: { gesture: "tap" | "drag" | "pinch" | "details" }) {
   return (
     <svg className="guide-mouse" viewBox="0 0 24 24" aria-hidden="true">
       {gesture === "tap" && (
@@ -63,6 +63,13 @@ function TouchIcon({ gesture }: { gesture: "tap" | "drag" | "pinch" }) {
           <circle className="guide-mouse-on" cx="12" cy="12" r="3" />
           <path d="M3 12h4M17 12h4M12 3v4M12 17v4" />
           <path d="M5 10l-2 2 2 2M19 10l2 2-2 2M10 5l2-2 2 2M10 19l2 2 2-2" />
+        </>
+      )}
+      {gesture === "details" && (
+        <>
+          <rect x="3.5" y="3.5" width="15" height="15" rx="3" />
+          <path d="M7.5 8.5h7M7.5 12h4.5" />
+          <circle className="guide-mouse-on" cx="17.5" cy="17.5" r="3" />
         </>
       )}
       {gesture === "pinch" && (
@@ -92,6 +99,11 @@ const TOUCH_ROWS: { keys: ReactNode; label: string; spoken: string }[] = [
     keys: <TouchIcon gesture="pinch" />,
     label: "Zoom",
     spoken: "Pinch to zoom in and out.",
+  },
+  {
+    keys: <TouchIcon gesture="details" />,
+    label: "Details",
+    spoken: "Tap the chicken while it stands in a place to read that place's details.",
   },
 ];
 

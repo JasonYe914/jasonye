@@ -88,6 +88,26 @@ export function projectsInUrl() {
   return inUrl || galleryRequested;
 }
 
+/**
+ * Fired on `window` when a full-page panel (the gallery or About) opens over
+ * the world or closes: the detail is whether the world is now covered. The
+ * world stops drawing while nothing of it shows. Kept here too, so a world
+ * that mounts under an open panel starts out paused.
+ */
+export const WORLD_COVER_EVENT = "world:cover";
+
+let worldCovered = false;
+
+export function isWorldCovered() {
+  return worldCovered;
+}
+
+export function setWorldCovered(covered: boolean) {
+  if (covered === worldCovered) return;
+  worldCovered = covered;
+  window.dispatchEvent(new CustomEvent<boolean>(WORLD_COVER_EVENT, { detail: covered }));
+}
+
 /** Fired on `window` to send the chicken to a village, or "home". */
 export const TRAVEL_EVENT = "world:travel";
 

@@ -3,6 +3,7 @@
 import { useLayoutEffect, useSyncExternalStore } from "react";
 import {
   THEME_KEY,
+  applyThemeColor,
   currentTheme,
   storedTheme,
   watchTheme,
@@ -11,6 +12,7 @@ import {
 
 function apply(theme: Theme) {
   document.documentElement.setAttribute("data-theme", theme);
+  applyThemeColor(theme);
 }
 
 /**
