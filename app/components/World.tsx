@@ -70,7 +70,13 @@ import {
 } from "./villageLayout";
 import { LOT } from "./villages";
 import { worldSettings } from "./worldSettings";
-import { TRAVEL_EVENT, ZOOM_EVENT, villageStore } from "./villageStore";
+import {
+  TRAVEL_EVENT,
+  WORLD_COVER_EVENT,
+  ZOOM_EVENT,
+  isWorldCovered,
+  villageStore,
+} from "./villageStore";
 
 /** How long one step between tiles takes. */
 const STEP_MS = 225;
@@ -153,6 +159,37 @@ const EDGE_SPEED = 1100;
 const MAP_HOVER_MS = 200;
 /** How often blocks left behind by a slide are dropped, at most. */
 const EDGE_CULL_MS = 800;
+/**
+ * How long a full-page panel takes to fade in over the world. The world
+ * keeps drawing until then, since it still shows through, and stops after.
+ */
+const COVER_FADE_MS = 260;
+
+/**
+ * Blocks that have already risen once this visit. When the view comes back
+ * to them (after zooming in and out again, walking away and back, or
+ * leaving for a project's page and coming back) they are simply there,
+ * without rising a second time. Outside the world, so it outlives the
+ * world being taken down and set up again; only a reload clears it.
+ */
+const risen = new Set<number>();
+
+/**
+ * Where the chicken and the view were when the world was last taken down
+ * (on leaving for a project's page), so coming back opens right there
+ * rather than at the name. Only a reload clears it.
+ */
+let savedSpot: {
+  col: number;
+  row: number;
+  facing: Direction;
+  /** Where the view was centred, or heading. */
+  x: number;
+  y: number;
+  wheelScale: number;
+  /** Which buildings of each village the chicken had stood beside. */
+  visited: Map<string, Set<string>>;
+} | null = null;
 /** How many tiles a path may stray past the box round its two ends. */
 const PATH_MARGIN = 16;
 /**
@@ -169,6 +206,11 @@ const TAP_SLOP = 10;
 const TAP_MS = 500;
 /** How long after a tap its trailing click is ignored, so it isn't handled twice. */
 const TAP_CLICK_MS = 800;
+/**
+ * The least reach, in window pixels, of a tap on the chicken from its
+ * middle, so a fingertip finds it even when the view is zoomed far out.
+ */
+const CHICKEN_TAP_PX = 24;
 /** How long the cross on an unreachable tile stays before it fades. */
 const NO_PATH_MS = 700;
 /**
@@ -298,15 +340,14 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
   let factsFor: VillagePlan | null = null;
   let factsMoving = false;
   /** Which buildings of each village the chicken has stood beside. */
-  const visited = new Map<string, Set<string>>();
+  const visited = savedSpot?.visited ?? new Map<string, Set<string>>();
 
   const tiles = new Map<number, Tile>();
   /**
-   * Blocks that have already risen once. When the view comes back to them
-   * (after zooming in and out again, or walking away and back), they are
-   * simply there, without rising a second time.
+   * When a full-page panel last covered the world, or null while the world
+   * shows. Covered from the start if the world mounts under an open panel.
    */
-  const risen = new Set<number>();
+  let coveredAt: number | null = isWorldCovered() ? -Infinity : null;
   /** The settled floor's cached path. */
   const floor = createFloor();
   // The view opens on the name, with the chicken standing beside it.
@@ -1157,8 +1198,24 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
     }
   }
 
+  /** Whether a panel has covered the world long enough that none of it shows. */
+  function hidden(now: number) {
+    return coveredAt !== null && now - coveredAt >= COVER_FADE_MS;
+  }
+
   function schedule() {
+    // Nothing is drawn behind a panel; uncovering schedules a frame again.
+    if (hidden(performance.now())) return;
     if (!frame) frame = requestAnimationFrame(draw);
+  }
+
+  function onCover(event: Event) {
+    if ((event as CustomEvent<boolean>).detail) {
+      coveredAt = performance.now();
+    } else {
+      coveredAt = null;
+      schedule();
+    }
   }
 
   /**
@@ -1375,6 +1432,26 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
     }
   }
 
+  /**
+   * A tap on the chicken while it stands in a village opens that village's
+   * details, as E does on a keyboard (and a second tap closes them). False
+   * if the tap missed the chicken or it is out in the open.
+   */
+  function toggleSheetAt(point: { x: number; y: number }) {
+    const { focus, sheet } = villageStore.get();
+    if (!focus) return false;
+    const feet = tileCenter(chicken.col, chicken.row);
+    // Its body stands about half a tile tall above the tile's middle.
+    const dx = point.x - feet.x;
+    const dy = point.y - (feet.y - TILE_SIDE / 2);
+    const reach = CHICKEN_TAP_PX / zoom;
+    if (Math.abs(dx) > Math.max(HALF_W * 0.6, reach)) return false;
+    if (Math.abs(dy) > Math.max(TILE_SIDE * 0.65, reach)) return false;
+    if (sheet) villageStore.closeSheet();
+    else villageStore.openSheet(focus.villageId);
+    return true;
+  }
+
   /** The distance between the first two fingers, in window pixels. */
   function fingerSpan() {
     const [a, b] = [...fingers.values()];
@@ -1382,9 +1459,10 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
   }
 
   /**
-   * Touch on the world. A tap does what a right-click does (and a tap on a
-   * Claude what a click does); one finger dragged moves the view, as a drag
-   * on the minimap does; two fingers pinch to zoom, as the wheel does.
+   * Touch on the world. A tap does what a right-click does (a tap on a
+   * Claude what a click does, and on the chicken what E does); one finger
+   * dragged moves the view, as a drag on the minimap does; two fingers
+   * pinch to zoom, as the wheel does.
    */
   function onTouchDown(event: PointerEvent) {
     if (event.pointerType === "mouse" || performance.now() < propsFrom) return;
@@ -1443,7 +1521,7 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
       if (prop?.kind.id === "claude") {
         spawnMinis(minis, prop, now);
         schedule();
-      } else {
+      } else if (!toggleSheetAt(point)) {
         walkToward(point);
       }
       return;
@@ -1597,14 +1675,42 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
       .trim();
   }
 
+  /** The village a link like /#gofleet asks for, if it names one. */
+  function hashVillage() {
+    const id = window.location.hash.slice(1);
+    return PLANS.some((plan) => plan.village.id === id) ? id : null;
+  }
+
   /** A link like /#gofleet goes straight to that village. */
   function travelFromHash() {
-    const id = window.location.hash.slice(1);
-    if (PLANS.some((plan) => plan.village.id === id)) {
+    const id = hashVillage();
+    if (id) {
       travel(new CustomEvent(TRAVEL_EVENT, { detail: id }));
       return true;
     }
     return false;
+  }
+
+  /**
+   * Puts the chicken and the view back where they were when the world was
+   * last taken down, inside its village with the facts already shown if it
+   * was in one. False if there is nowhere saved.
+   */
+  function restoreSpot() {
+    const spot = savedSpot;
+    if (!spot) return false;
+    chicken.col = chicken.fromCol = spot.col;
+    chicken.row = chicken.fromRow = spot.row;
+    chicken.facing = spot.facing;
+    chicken.moveStart = -Infinity;
+    wheelScale = spot.wheelScale;
+    inVillage = planAt(spot.col, spot.row);
+    if (inVillage) facts.set(inVillage, { on: true, at: -Infinity, from: 0 });
+    factsFor = inVillage;
+    camera.x = camera.fromX = camera.toX = spot.x;
+    camera.y = camera.fromY = camera.toY = spot.y;
+    camera.panning = false;
+    return true;
   }
 
   /** The intro is over: show the keys, as the overlay fades away. */
@@ -1637,10 +1743,21 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
     overview = true;
     baseZoom = overviewZoom(window.innerWidth, window.innerHeight);
     zooming.active = false;
+    // Back from another page: where the visitor left off, unless the link
+    // asks for a village of its own.
+    const restored = !hashVillage() && restoreSpot();
     setZoom(settledZoom());
+    if (restored) {
+      // The window may have changed size meanwhile.
+      const at = clampToWorld(camera.toX, camera.toY, width, height);
+      camera.x = camera.fromX = camera.toX = at.x;
+      camera.y = camera.fromY = camera.toY = at.y;
+      cull(viewBounds(camera.x, camera.y));
+    }
     for (const tile of tiles.values()) tile.born = -Infinity;
     fill(viewBounds(camera.toX, camera.toY), now, () => -Infinity);
     travelFromHash();
+    if (restored) updateFocus();
     schedule();
   }
 
@@ -1781,6 +1898,7 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
   window.addEventListener("blur", releaseKeys);
   window.addEventListener(TRAVEL_EVENT, travel);
   window.addEventListener(ZOOM_EVENT, onZoomEvent);
+  window.addEventListener(WORLD_COVER_EVENT, onCover);
   window.addEventListener("hashchange", travelFromHash);
   canvas.addEventListener("wheel", onWheel, { passive: false });
   canvas.addEventListener("contextmenu", onContextMenu);
@@ -1808,8 +1926,25 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
 
   return () => {
     cancelAnimationFrame(frame);
+    // Remember every block already shown, so a world set up again (back
+    // from a project's page) has them in place instead of rising again.
+    const now = performance.now();
+    for (const [key, tile] of tiles) {
+      if (!tile.fixed && (tile.settled || tile.born < now)) risen.add(key);
+    }
+    // And where the visitor was, to come back to.
+    savedSpot = {
+      col: chicken.col,
+      row: chicken.row,
+      facing: chicken.facing,
+      x: camera.toX,
+      y: camera.toY,
+      wheelScale,
+      visited,
+    };
     window.removeEventListener(TRAVEL_EVENT, travel);
     window.removeEventListener(ZOOM_EVENT, onZoomEvent);
+    window.removeEventListener(WORLD_COVER_EVENT, onCover);
     window.removeEventListener("hashchange", travelFromHash);
     canvas.removeEventListener("wheel", onWheel);
     canvas.removeEventListener("contextmenu", onContextMenu);
@@ -1860,7 +1995,7 @@ export default function World() {
         ref={canvasRef}
         className="fixed inset-0 h-full w-full touch-none"
         role="img"
-        aria-label="The name Jason Ye in huge metallic letters lying flat on an endless grid floor, with a blocky chicken standing beside them. Use the W, A, S and D keys or the arrow keys to walk the chicken around, right-click or tap a tile to walk there, drag to look around, and scroll or pinch to zoom."
+        aria-label="The name Jason Ye in huge metallic letters lying flat on an endless grid floor, with a blocky chicken standing beside them. Use the W, A, S and D keys or the arrow keys to walk the chicken around, right-click or tap a tile to walk there, press E or tap the chicken for the details of the place it stands in, drag to look around, and scroll or pinch to zoom."
       />
       {/* Fog thickens toward the window edges, so new blocks rise out of it. */}
       <div className="fog pointer-events-none fixed inset-0" />

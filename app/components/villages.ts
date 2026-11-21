@@ -41,6 +41,12 @@ export type Board = {
   caption: string;
   kind: "dash" | "form" | "portrait" | "photo";
   src?: string;
+  /**
+   * The picture as shown upright in the sheet, when `src` suits the floor
+   * but not the sheet: pre-slanted to lie flat, or a logo with so much
+   * margin, or a screenshot so wide, that it reads poorly at sheet width.
+   */
+  flatSrc?: string;
   /** Width over height of the picture, when it doesn't match its kind. */
   aspect?: number;
   /** Keep the picture's own colours rather than greying it like the world. */
@@ -247,6 +253,7 @@ export const VILLAGES: Village[] = [
         caption: "PLAYTOON.IT",
         kind: "photo",
         src: "/villages/playtoon/logo.webp",
+        flatSrc: "/villages/playtoon/logo-flat.webp",
         aspect: 810 / 746,
         color: true,
         alt: "The Playtoon.it logo: white and black lettering on an orange open book",
@@ -305,6 +312,7 @@ export const VILLAGES: Village[] = [
         caption: "GET-INTO.TECH",
         kind: "photo",
         src: "/villages/getinto/icon.webp",
+        flatSrc: "/villages/getinto/icon-flat.webp",
         aspect: 1,
         color: true,
         alt: "The Get-Into.Tech app icon: white concentric rings on a purple gradient",
@@ -356,6 +364,7 @@ export const VILLAGES: Village[] = [
         caption: "ROADMAP",
         kind: "dash",
         src: "/villages/wayfinder/roadmap.webp",
+        flatSrc: "/villages/wayfinder/roadmap-flat.webp",
         aspect: 1309 / 455,
         color: true,
         alt: "A WayFinder roadmap for a software engineer, branching from Programming Fundamentals, with that step's tasks open beside it",
@@ -486,6 +495,7 @@ export const VILLAGES: Village[] = [
         caption: "ZENDUIT",
         kind: "photo",
         src: "/villages/zendu/logo.webp",
+        flatSrc: "/villages/zendu/logo-flat.webp",
         aspect: 946 / 652,
         color: true,
         alt: "The ZenduIT wordmark in blue",
@@ -538,7 +548,7 @@ export const VILLAGES: Village[] = [
         aspect: 1174 / 610,
         color: true,
         demo: "signin",
-        alt: "The BankView (Horizon) sign-in screen beside a preview of the dashboard",
+        alt: "The BankView sign-in screen beside a preview of the dashboard",
         detail: "Signing in to the dashboard, with sandbox accounts only.",
       },
     ],
@@ -576,6 +586,7 @@ export const VILLAGES: Village[] = [
         caption: "ISOMETRIC VIEW",
         kind: "photo",
         src: "/villages/engine/iso.webp",
+        flatSrc: "/villages/engine/iso-flat.webp",
         // Pre-slanted, so laid on the floor it stands square to the screen.
         // Its background grid is redrawn to match the top view's: the same
         // spacing in tiles, colour and line positions, edge to edge.

@@ -217,9 +217,9 @@ export default function AboutPanel({
             <div className="about-links">
               {LINKS.map((link) => (
                 <a
+                  key={link.label}
                   {...GLOW}
                   className="glow"
-                  key={link.label}
                   href={link.href}
                   target={link.href.startsWith("http") ? "_blank" : undefined}
                   rel={link.href.startsWith("http") ? "noopener noreferrer" : undefined}

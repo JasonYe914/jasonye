@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import {
+  Fragment,
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
 import { EMAIL, EMAIL_HREF, GITHUB, LINKEDIN } from "./contact";
 
 /*
@@ -61,6 +68,19 @@ const CONTACTS: Contact[] = [
     ),
   },
 ];
+
+/**
+ * An address with places it may break onto a second line, after its "@"
+ * and each "/", for a phone too narrow to show it whole on one.
+ */
+function breakable(value: string) {
+  return value.split(/(?<=[@/])/).map((part, index) => (
+    <Fragment key={index}>
+      {index > 0 && <wbr />}
+      {part}
+    </Fragment>
+  ));
+}
 
 export default function ContactPanel({ onClose }: { onClose: () => void }) {
   const root = useRef<HTMLElement>(null);
@@ -137,7 +157,7 @@ export default function ContactPanel({ onClose }: { onClose: () => void }) {
                 </span>
                 <span className="contact-text">
                   <span className="contact-label">{contact.label}</span>
-                  <span className="contact-value">{contact.value}</span>
+                  <span className="contact-value">{breakable(contact.value)}</span>
                 </span>
                 <svg className="contact-arrow" viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M7 17 17 7M9 7h8v8" />
