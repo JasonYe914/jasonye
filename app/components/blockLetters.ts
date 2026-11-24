@@ -34,26 +34,36 @@ const STEM = (GLYPH_W - SLIT) / 2;
  * `solid`, and the cuts taken out of it into `cuts`. Cuts must not touch or
  * overlap one another.
  */
-type Draw = (solid: Path2D, cuts: Path2D, x: number, y: number) => void;
+type Draw = (solid: PathSink, cuts: PathSink, x: number, y: number) => void;
+
+/** The few Path2D calls the letters use, so they can be drawn into SVG too. */
+export interface PathSink {
+  moveTo(x: number, y: number): void;
+  lineTo(x: number, y: number): void;
+  arc(x: number, y: number, radius: number, start: number, end: number): void;
+  closePath(): void;
+  rect(x: number, y: number, w: number, h: number): void;
+  roundRect(x: number, y: number, w: number, h: number, radii?: number | number[]): void;
+}
 type Letter = { w: number; draw: Draw };
 
 /** A vertical cut centred on a GLYPH_W-wide letter, from y0 down to y1. */
-function slitDown(cuts: Path2D, x: number, y0: number, y1: number) {
+function slitDown(cuts: PathSink, x: number, y0: number, y1: number) {
   cuts.roundRect(x + (GLYPH_W - SLIT) / 2, y0, SLIT, y1 - y0, SLIT / 2);
 }
 
 /** A vertical cut centred on cx, from y0 down to y1. */
-function slitAt(cuts: Path2D, cx: number, y0: number, y1: number) {
+function slitAt(cuts: PathSink, cx: number, y0: number, y1: number) {
   cuts.roundRect(cx - SLIT / 2, y0, SLIT, y1 - y0, SLIT / 2);
 }
 
 /** A horizontal cut from x0 across to x1, with its top edge at y. */
-function slitAcross(cuts: Path2D, x0: number, x1: number, y: number) {
+function slitAcross(cuts: PathSink, x0: number, x1: number, y: number) {
   cuts.roundRect(x0, y, x1 - x0, SLIT, SLIT / 2);
 }
 
 /** A closed polygon. Solids are given clockwise, like roundRect, so overlaps add. */
-function polygon(path: Path2D, points: [number, number][]) {
+function polygon(path: PathSink, points: [number, number][]) {
   points.forEach(([px, py], i) => (i === 0 ? path.moveTo(px, py) : path.lineTo(px, py)));
   path.closePath();
 }
@@ -285,6 +295,13 @@ const LETTERS: Record<string, Letter> = {
       solid.roundRect(x, y + 1.6, 1.6, 0.8, 0.4);
     },
   },
+  // An apostrophe set down on the line.
+  ",": {
+    w: 0.7,
+    draw(solid, _cuts, x, y) {
+      solid.roundRect(x, y + GLYPH_H - 1.3, 0.7, 1.3, [0.35, 0.35, 0.35, 0]);
+    },
+  },
   ".": {
     w: 0.8,
     draw(solid, _cuts, x, y) {
@@ -310,7 +327,7 @@ export function blockTextWidth(text: string) {
  * Adds `text` to `solid` and `cuts` on one line, its top-left corner at
  * (x, y), in letter units. Returns how wide it ran.
  */
-export function addBlockText(solid: Path2D, cuts: Path2D, text: string, x: number, y: number) {
+export function addBlockText(solid: PathSink, cuts: PathSink, text: string, x: number, y: number) {
   let at = x;
   [...text].forEach((char, i) => {
     if (i > 0) at += SPACING;

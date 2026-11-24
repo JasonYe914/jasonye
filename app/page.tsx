@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Clock from "./components/Clock";
 import Loader from "./components/Loader";
 import NavBar from "./components/NavBar";
@@ -5,6 +6,8 @@ import SiteFooter from "./components/SiteFooter";
 import VillageCard, { VillageIndex } from "./components/VillageCard";
 import World from "./components/World";
 import WorldGuide from "./components/WorldGuide";
+
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 export default function Home() {
   return (

@@ -154,7 +154,9 @@ type Variant = {
 };
 
 const VARIANTS: Record<Village["id"], Variant> = {
-  queens: { scale: 1, turn: false, shift: -3, lift: 1.1, sides: true },
+  // Shifted forward, toward the name, so the home view on a computer takes
+  // in the whole logo below the controls guide.
+  queens: { scale: 1, turn: false, shift: 3, lift: 1.1 },
   // Not turned: a logo has to read the right way round.
   qadt: { scale: 0.9, turn: false, shift: 1.5, lift: 0.9 },
   playtoon: { scale: 1, turn: false, shift: 0.5, lift: 1.0 },

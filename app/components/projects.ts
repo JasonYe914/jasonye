@@ -113,8 +113,8 @@ const REPOS: Repo[] = [
     },
   },
   {
-    id: "desmos",
-    name: "Copy of Desmos",
+    id: "visualize",
+    name: "Visualize",
     repo: "Copy-of-Desmos",
     dates: "Dec 2025",
     summary: "A graphing calculator in the browser, after Desmos.",
@@ -135,7 +135,7 @@ const REPOS: Repo[] = [
     media: { kind: "photo", aspect: 4 / 3 },
     image: {
       src: "/projects/flappy-bird-ga.webp",
-      alt: "Generation 6 of the Happy Bird simulation: a population of birds nearing a pipe gap, most eliminated, three pipes ahead, with the generation's best score in the corner",
+      alt: "Generation 6 of the Flappy Bird simulation: a population of birds nearing a pipe gap, most eliminated, three pipes ahead, with the generation's best score in the corner",
     },
   },
   {
@@ -143,7 +143,7 @@ const REPOS: Repo[] = [
     name: "Valorant Team Select",
     repo: "ValorantTeamSelect",
     dates: "Sep 2025",
-    summary: "Pick a “perfect” Valorant team from a database of players, after FIFA's team selection.",
+    summary: "Pick a \"perfect\" Valorant team from a database of players, after FIFA's team selection.",
     tools: ["React", "Java"],
     media: { kind: "dash", aspect: 1600 / 768 },
     image: {

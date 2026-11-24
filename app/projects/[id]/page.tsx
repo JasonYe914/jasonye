@@ -14,15 +14,46 @@ import { PROJECTS, projectById } from "../../components/projects";
 
 type Props = { params: Promise<{ id: string }> };
 
+/**
+ * The home page's snapshot (app/opengraph-image.jpg). A page that sets its
+ * own openGraph no longer inherits it, so it is named here.
+ */
+const SHARE_IMAGE = {
+  url: "/opengraph-image.jpg",
+  width: 1200,
+  height: 630,
+  alt: "Jason Ye's portfolio: a chicken on an isometric map, beside the name Jason Ye and landmarks for Queen's, Wayfinder, the V8 Engine and Playtoon",
+};
+
 export function generateStaticParams() {
   return PROJECTS.map((project) => ({ id: project.id }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const project = projectById((await params).id);
-  return project
-    ? { title: `${project.name} · Jason Ye`, description: project.summary }
-    : {};
+  if (!project) return {};
+  const title = `${project.name} · Jason Ye`;
+  const url = `/projects/${project.id}`;
+  // Its own preview when the link is shared, rather than the home page's.
+  return {
+    title,
+    description: project.summary,
+    alternates: { canonical: url },
+    openGraph: {
+      type: "website",
+      siteName: "Jason Ye",
+      title,
+      description: project.summary,
+      url,
+      images: [SHARE_IMAGE],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description: project.summary,
+      images: [SHARE_IMAGE],
+    },
+  };
 }
 
 export default async function ProjectPage({ params }: Props) {
@@ -30,6 +61,7 @@ export default async function ProjectPage({ params }: Props) {
   if (!project) notFound();
 
   const story = STORIES[project.id];
+  const authors = story?.authors ?? [AUTHOR];
   const index = PROJECTS.indexOf(project);
   const next = PROJECTS[(index + 1) % PROJECTS.length];
 
@@ -115,8 +147,8 @@ export default async function ProjectPage({ params }: Props) {
         <aside className="project-facts" aria-label="Project details">
           <dl>
             <div>
-              <dt>Author</dt>
-              <dd>{AUTHOR}</dd>
+              <dt>{authors.length > 1 ? "Authors" : "Author"}</dt>
+              <dd>{authors.join(", ")}</dd>
             </div>
             <div>
               <dt>Type</dt>

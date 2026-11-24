@@ -15,6 +15,8 @@ export type Story = {
   stack: Record<string, string>;
   /** Where it stands now. */
   status: string;
+  /** Everyone who built it, when it was a team; otherwise just AUTHOR. */
+  authors?: string[];
 };
 
 export const AUTHOR = "Jason Ye";
@@ -75,7 +77,7 @@ export const STORIES: Record<string, Story> = {
       "Gemini API": "Turns a goal into milestones, tasks and the links between them.",
       React: "The roadmap view and each milestone's panel.",
       Flask: "The backend that talks to Gemini and keeps track of progress.",
-      TypeScript: "The frontend.",
+      JavaScript: "The frontend.",
       Python: "The backend.",
     },
     status: "Complete.",
@@ -112,6 +114,7 @@ export const STORIES: Record<string, Story> = {
       Python: "The backend and the video processing.",
     },
     status: "Complete.",
+    authors: [AUTHOR, "Yatri Rathod", "Kirtiraj Atodariya", "Jayadeep Sayani"],
   },
 
   "java-neural-network": {
@@ -165,7 +168,7 @@ export const STORIES: Record<string, Story> = {
     status: "Complete.",
   },
 
-  desmos: {
+  visualize: {
     overview: [
       "A graphing calculator in the browser, modelled on Desmos. Type in an equation and it's drawn on the graph as you type.",
       "Alongside the 2D grapher, it includes a four-function calculator, a 3D grapher and a geometry tool.",
