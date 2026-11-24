@@ -141,8 +141,9 @@ const ROWS: { keys: ReactNode; label: string; spoken: string }[] = [
   },
   {
     keys: <kbd className="guide-key is-wide">Space</kbd>,
-    label: "Centre",
-    spoken: "Space brings the view back to the chicken.",
+    // A no-break space keeps the slash with "Centre" when the label wraps.
+    label: "Centre / follow",
+    spoken: "Space brings the view back to the chicken; hold it and the view follows the chicken.",
   },
 ];
 

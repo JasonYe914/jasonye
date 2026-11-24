@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useSyncExternalStore, type KeyboardEvent } from "react";
+import BlockHeading from "./BlockHeading";
 import ProjectMedia from "./ProjectMedia";
 import { PROJECTS, type Project } from "./projects";
 
@@ -156,7 +157,9 @@ export default function ProjectGallery({
       onKeyDown={onKeyDown}
     >
       <header className="gallery-head">
-        <h2 id="gallery-title">Projects</h2>
+        <h2 id="gallery-title" className="gallery-title">
+          <BlockHeading parts={[{ text: "Projects" }]} />
+        </h2>
         <button
           type="button"
           className="gallery-close"

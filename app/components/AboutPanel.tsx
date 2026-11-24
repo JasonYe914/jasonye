@@ -7,6 +7,7 @@ import {
   type KeyboardEvent,
   type PointerEvent,
 } from "react";
+import BlockHeading from "./BlockHeading";
 import { PROJECTS } from "./projects";
 import { travelTo } from "./villageStore";
 import { VILLAGES, type Village } from "./villages";
@@ -212,7 +213,7 @@ export default function AboutPanel({
           {/* The links sit under the name, exactly as wide as it. */}
           <div className="about-namecard">
             <h2 id="about-title" className="about-title">
-              Hi, I&apos;m <span className="about-name">Jason.</span>
+              <BlockHeading parts={[{ text: "Hi, I'm", fill: "ink" }, { text: "Jason." }]} />
             </h2>
             <div className="about-links">
               {LINKS.map((link) => (

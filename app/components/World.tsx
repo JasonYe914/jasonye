@@ -86,6 +86,12 @@ const STEP_MS = 225;
  * along behind the chicken rather than lurching.
  */
 const PAN_MS = 650;
+/**
+ * While Space is held the view chases the chicken, closing the gap with
+ * this time constant: it catches up in about a third of a second from
+ * wherever it was, then trails a walking chicken by a fraction of a tile.
+ */
+const CHASE_MS = 90;
 /** How long a new block takes to rise out of the fog. */
 const RISE_MS = 600;
 /** How far below the floor a new block starts. */
@@ -388,6 +394,11 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
    * to 1, and when the slide last moved and last dropped blocks.
    */
   const edge = { x: 0, y: 0, last: 0, culled: 0 };
+  /**
+   * Space held: the view is locked on the chicken, and when it last moved.
+   * Released, the view stays where it is and the usual following resumes.
+   */
+  const chase = { held: false, last: 0 };
   /** Easing the minimap out on hover and back: 0 is at rest, 1 pulled back. */
   const mapHover = { from: 0, to: 0, at: -Infinity };
   /** The minimap's framing as a drag on it began, kept for the drag. */
@@ -703,6 +714,27 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
     }
   }
 
+  /**
+   * Where the view centres to sit on the chicken as drawn now, part-way
+   * through its step, kept where the window stays over the world.
+   */
+  function chickenAt(now: number) {
+    const moved = progress(chicken.moveStart, animated(STEP_MS), now);
+    const at = project(
+      chicken.fromCol + (chicken.col - chicken.fromCol) * moved + 0.5,
+      chicken.fromRow + (chicken.row - chicken.fromRow) * moved + 0.5,
+    );
+    const [w, h] = targetView();
+    return clampToWorld(at.x, at.y, w, h);
+  }
+
+  /** Whether Space is held and the view still has catching up to do. */
+  function chasing(now: number) {
+    if (!chase.held) return false;
+    const at = chickenAt(now);
+    return Math.hypot(at.x - camera.x, at.y - camera.y) > 0.25;
+  }
+
   /** Takes one step, or turns to face what blocks it; false if it could not move. */
   function step(facing: Direction, now: number) {
     // It has found the keys, so the hints can go.
@@ -736,11 +768,12 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
     if (plan !== inVillage) {
       inVillage = plan;
       zoomTo(settledZoom(), now);
-      recenter(now, plan && wheelScale <= 1 ? villageFrame(plan) : undefined);
+      // Held on the chicken, the view doesn't frame the village.
+      if (!chase.held) recenter(now, plan && wheelScale <= 1 ? villageFrame(plan) : undefined);
       return true;
     }
 
-    if (!plan || wheelScale > 1) follow(now);
+    if (!chase.held && (!plan || wheelScale > 1)) follow(now);
     return true;
   }
 
@@ -807,7 +840,18 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
         blockedAt(col, row) || (col === chicken.col && row === chicken.row),
     );
 
-    if (edge.x !== 0 || edge.y !== 0) {
+    if (chase.held) {
+      // Locked on the chicken where it is drawn, part-way through its step,
+      // so the view glides with it instead of hopping tile to tile. This
+      // wins over edge scrolling, as it would in a MOBA.
+      const dt = chase.last ? Math.min(50, now - chase.last) : 16;
+      chase.last = now;
+      const at = chickenAt(now);
+      const k = reducedMotion.matches ? 1 : 1 - Math.exp(-dt / CHASE_MS);
+      if (Math.hypot(at.x - camera.x, at.y - camera.y) > 0.25) {
+        panTo(camera.x + (at.x - camera.x) * k, camera.y + (at.y - camera.y) * k, now);
+      }
+    } else if (edge.x !== 0 || edge.y !== 0) {
       const dt = edge.last ? Math.min(50, now - edge.last) : 16;
       edge.last = now;
       const distance = (EDGE_SPEED / zoom) * (dt / 1000);
@@ -1192,6 +1236,7 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
       demosPlaying() ||
       edge.x !== 0 ||
       edge.y !== 0 ||
+      chasing(now) ||
       now - mapHover.at < MAP_HOVER_MS
     ) {
       schedule();
@@ -1852,10 +1897,13 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
       villageStore.closeSheet();
       return;
     }
-    if (key === " " && !event.repeat) {
-      // Back to the chicken, wherever the view has wandered.
+    if (key === " ") {
+      // Back to the chicken, wherever the view has wandered, and held on
+      // it for as long as Space is down.
       event.preventDefault();
-      recenter(performance.now());
+      if (event.repeat) return;
+      chase.held = true;
+      chase.last = 0;
       schedule();
       return;
     }
@@ -1876,11 +1924,20 @@ function startWorld(canvas: HTMLCanvasElement, map: MapParts) {
   }
 
   function onKeyUp(event: KeyboardEvent) {
+    if (event.key === " ") releaseChase();
     const index = held.indexOf(event.key.toLowerCase());
     if (index !== -1) held.splice(index, 1);
   }
 
+  /** Lets go of the chicken: the view stays put, and settles its floor. */
+  function releaseChase() {
+    if (!chase.held) return;
+    chase.held = false;
+    cull(viewBounds(camera.x, camera.y));
+  }
+
   function releaseKeys() {
+    releaseChase();
     held.length = 0;
     queued = null;
     setEdge(0, 0);
