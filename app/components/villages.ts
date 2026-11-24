@@ -121,9 +121,9 @@ export const VILLAGES: Village[] = [
     dates: "Sep 2024 – Present",
     place: "Kingston, ON",
     kind: "Education",
-    // As far forward as it goes without its lot meeting the name's tiles or
-    // the V8 Engine's lot, so the home view takes it in on a 16:9 screen.
-    col: -6,
+    // Forward, toward the name, so the home view takes it in on a 16:9
+    // screen, with 4 tiles of floor between its lot and the V8 Engine's.
+    col: -10,
     row: -16,
     color: "#4c7bd9",
     summary: "Mechanical Engineering at Queen's.",
